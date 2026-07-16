@@ -37,6 +37,7 @@ CATALOGO.forEach((cat) =>
       costo: it.cost,
       limit: it.limit || 0,
       efecto: deriveEfecto(it, cat.categoria),
+      familia: it.nivel ? it.nombre.split(" ")[0] : null, // 1ª palabra (Molino, Mina, Puerta…): el nivel superior sustituye al inferior
     });
   })
 );
@@ -91,6 +92,8 @@ const ui = {
   tablillaText: "", tablillaMsg: "", fichaColapsada: false, copied: "", mesAplicado: false,
 };
 let copyTimer = null, mesTimer = null;
+// El fundido de entrada solo se reproduce al cambiar de vista, no en cada re-render (evita parpadeos al teclear).
+let fadeCls = "", lastView = null;
 
 /* ---------- Modelo ---------- */
 function blankCasa(nombre) {
@@ -98,7 +101,7 @@ function blankCasa(nombre) {
   return {
     nombre: nombre || "Casa sin nombre", cart: {}, mes: 1, meta: { escudo: "", lema: "", miembros: "", territorio: "", acento: "" },
     f: {
-      dragones: box(), op: box(),
+      dragones: { base: "", dado: "", mods: [] }, op: box(),
       alimento: { base: "", granero: "", consumo: "", mods: [] },
       madera: box(), hierro: box(), piedra: box(),
       ejercito: box(), guarnicion: box(), barcos: box(), defensa: box(),
@@ -222,6 +225,12 @@ function cerrarMes() {
     const it = CATALOG.find((x) => x.id === id);
     if (!it || !it.efecto) return;
     const qty = A.cart[id];
+    // Edificios de nivel superior sustituyen al inferior: quita los modificadores de la misma familia.
+    if (it.familia) {
+      Object.keys(f).forEach((bk) => {
+        if (f[bk] && f[bk].mods) f[bk].mods = f[bk].mods.filter((m) => ((m.l || "").split(" ")[0] !== it.familia));
+      });
+    }
     Object.entries(it.efecto).forEach(([resKey, val]) => {
       const total = val * qty;
       if (!total) return;
@@ -232,7 +241,8 @@ function cerrarMes() {
       if (ex) ex.v = String(n(ex.v) + total); else box.mods.push({ l: etiqueta, v: String(total) });
     });
   });
-  if (f.dragones) f.dragones.base = "";
+  // Los dragones también arrastran remanente: lo que sobra pasa a ser la base del próximo mes y se resetea la tirada.
+  if (f.dragones) { f.dragones.base = String(Math.round(c.rest.dragones || 0)); f.dragones.dado = ""; }
   ui.mesAplicado = true;
   clearTimeout(mesTimer);
   mesTimer = setTimeout(() => { ui.mesAplicado = false; render(); }, 2600);
@@ -270,7 +280,7 @@ function compute() {
   const aliGranero = n(F.alimento.granero);
   const aliDisp = n(F.alimento.base) + aliNet;
   const disp = {
-    dragones: n(F.dragones.base) + sumMods(F.dragones) + tier.dragones,
+    dragones: n(F.dragones.base) + n(F.dragones.dado) + sumMods(F.dragones) + tier.dragones,
     alimento: aliDisp,
     madera: n(F.madera.base) + sumMods(F.madera),
     hierro: n(F.hierro.base) + sumMods(F.hierro),
@@ -300,6 +310,8 @@ function render() {
   app.style.setProperty("--gold-soft", _mix(acc, "#ffffff", 0.25));
   app.style.setProperty("--gold-dim", _mix(acc, "#000000", 0.5));
   const v = state.view;
+  fadeCls = v !== lastView ? "wod-fade" : "";
+  lastView = v;
   const esMiCasa = v === "micasa" || !["fichas", "consejos", "reglas"].includes(v);
   const body = v === "reglas" ? reglasView() : v === "consejos" ? consejosView() : v === "fichas" ? fichasView() : miCasaView();
   app.innerHTML =
@@ -451,7 +463,7 @@ function fichasView() {
     const F = cc.f;
     const opT = n(F.op.base) + sumMods(F.op);
     const tier = tierFor(opT);
-    const drag = n(F.dragones.base) + sumMods(F.dragones) + tier.dragones;
+    const drag = n(F.dragones.base) + n(F.dragones.dado) + sumMods(F.dragones) + tier.dragones;
     const terr = TERRITORIOS.find((t) => t.id === (cc.meta && cc.meta.territorio));
     const color = (cc.meta && cc.meta.acento) || (terr && terr.color) || "#c79f00";
     const activa = id === state.activeId;
@@ -472,7 +484,7 @@ function fichasView() {
     );
   }).join("");
   return (
-    `<section class="wod-fade">` +
+    `<section class="${fadeCls}">` +
       `<h2 class="nameplate">Fichas de Casa</h2>` +
       `<p class="hint">Tus Casas guardadas. Edita cualquiera para gestionar su ficha, o crea una nueva desde cero, por código o desde la tablilla del foro.</p>` +
       `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">` +
@@ -541,7 +553,7 @@ function miCasaView() {
       fichaBody +
     `</div>`;
 
-  return `<section class="wod-fade">` + tablilla + hintsPanel(c) + shopAndCart(c) + `</section>`;
+  return `<section class="${fadeCls}">` + tablilla + hintsPanel(c) + shopAndCart(c) + `</section>`;
 }
 
 function renderBox(cfg, c) {
@@ -560,11 +572,21 @@ function renderBox(cfg, c) {
   let restBlock = "", tierNote = "", extraNote = "", foodLine = "", input = "";
 
   if (cfg.key === "dragones") {
+    const dado = n(box.dado);
+    // Ingreso de este mes = tirada (dado) + bonos recurrentes + orden público. El remanente (base) se arrastra.
+    const ingresoMes = dado + sum + c.tier.dragones;
+    headerVal = fmt(base) + " (" + (ingresoMes >= 0 ? "+" : "−") + fmt(Math.abs(ingresoMes)) + ")";
     input =
-      `<label style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">` +
-        `<span style="font-size:10.5px;color:var(--gold);letter-spacing:0.04em;text-transform:uppercase;"><i class="ph ph-coins" style="vertical-align:-1px;"></i> ${esc(cfg.baseLabel)} · rellena tu tirada</span>` +
-        `<input type="number" inputmode="numeric" placeholder="0" data-act="setBase" data-key="dragones" data-fid="base-dragones" value="${esc(box.base)}" style="width:100%;background:#161513;border:1px solid var(--gold-dim);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
-      `</label>`;
+      `<div style="display:flex;gap:8px;margin-bottom:10px;">` +
+        `<label style="flex:1;display:flex;flex-direction:column;gap:3px;">` +
+          `<span style="font-size:10.5px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">Remanente</span>` +
+          `<input type="number" inputmode="numeric" placeholder="0" data-act="setBase" data-key="dragones" data-fid="base-dragones" value="${esc(box.base)}" title="Dragones que te sobraron del mes anterior" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
+        `</label>` +
+        `<label style="flex:1;display:flex;flex-direction:column;gap:3px;">` +
+          `<span style="font-size:10.5px;color:var(--gold);letter-spacing:0.04em;text-transform:uppercase;">🎲 Tirada del mes</span>` +
+          `<input type="number" inputmode="numeric" placeholder="0" data-act="setDado" data-key="dragones" data-fid="dado-dragones" value="${esc(box.dado || "")}" title="Resultado del dado de Dragones de este mes" style="width:100%;background:#161513;border:1px solid var(--gold-dim);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
+        `</label>` +
+      `</div>`;
   }
 
   if (cfg.kind === "op") {
@@ -867,7 +889,7 @@ function consejosView() {
   const roiRow = (item, coste, efecto, roi) =>
     `<tr><td style="padding:8px 10px;border-bottom:1px solid var(--line-soft);color:var(--text);">${item}</td><td style="padding:8px 10px;border-bottom:1px solid var(--line-soft);color:var(--muted);">${coste}</td><td style="padding:8px 10px;border-bottom:1px solid var(--line-soft);">${efecto}</td><td style="padding:8px 10px;border-bottom:1px solid var(--line-soft);color:var(--gold);font-weight:700;">${roi}</td></tr>`;
   return (
-    `<section class="wod-fade" style="max-width:820px;margin:0 auto;">` +
+    `<section class="${fadeCls}" style="max-width:820px;margin:0 auto;">` +
       `<div style="display:flex;align-items:center;gap:16px;justify-content:center;margin:8px 0 6px;">` +
         `<div style="height:1px;flex:1;background:linear-gradient(to right,transparent,var(--gold-dim));"></div>` +
         `<h2 style="margin:0;${CINZEL}font-weight:600;letter-spacing:0.22em;text-transform:uppercase;font-size:clamp(20px,3vw,28px);color:var(--gold);">Consejos de compra</h2>` +
@@ -917,7 +939,7 @@ function reglasView() {
   const fac = (t, v, color) => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line-soft);"><span>${t}</span><span style="color:${color};font-weight:700;">${v}</span></div>`;
   const H = "font-family:'Cinzel',serif;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;font-size:15px;color:var(--cyan);margin:0 0 8px;";
   return (
-    `<section class="wod-fade" style="max-width:820px;margin:0 auto;">` +
+    `<section class="${fadeCls}" style="max-width:820px;margin:0 auto;">` +
       `<div style="display:flex;align-items:center;gap:16px;justify-content:center;margin:8px 0 6px;">` +
         `<div style="height:1px;flex:1;background:linear-gradient(to right,transparent,var(--gold-dim));"></div>` +
         `<h2 style="margin:0;${CINZEL}font-weight:600;letter-spacing:0.22em;text-transform:uppercase;font-size:clamp(20px,3vw,28px);color:var(--gold);">Reglas de economía</h2>` +
@@ -971,7 +993,7 @@ function restoreFocus(info) {
   if (!info) return;
   const el = document.querySelector('[data-fid="' + info.fid + '"]');
   if (!el) return;
-  el.focus();
+  try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
   try { if (info.start != null) el.setSelectionRange(info.start, info.end); } catch (e) {}
 }
 
@@ -1062,6 +1084,7 @@ function handleInput(e) {
   const act = t.dataset.act;
   if (act === "rename") { patch({ nombre: t.value }); }
   else if (act === "setBase") { setBase(t.dataset.key, t.value); }
+  else if (act === "setDado") { setBox(t.dataset.key, { dado: t.value }); }
   else if (act === "tablillaInput") { ui.tablillaText = t.value; ui.tablillaMsg = ""; softClearMsg("tablilla"); }
   else if (act === "importInput") { ui.importText = t.value; ui.importMsg = ""; softClearMsg("import"); }
 }

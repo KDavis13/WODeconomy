@@ -97,8 +97,72 @@ const HABCAT = {
     [9, "Arquero entrenado", "Contra enemigos con menor Agilidad, +2 ataque a distancia cada ronda. (P)"],
     [10, "Huida veloz", "Escapas de una persecución tirando dos dados de A/F; basta un acierto."],
   ],
+  conocimiento: [
+    [1, "Boticario novato", "Restauras 3 PV de un personaje herido durante una pelea. Una vez por personaje y hasta 5 personajes."],
+    [2, "Revisión de registros", "Repites el dado de Economía si no estás satisfecho; el segundo resultado es el que se aplica siempre."],
+    [3, "Herborista", "Conocimiento de plantas: descuento del 20% en la zona de brebajes de la tienda."],
+    [4, "Medicina", "Cambias un dado de salud desfavorable a uno un nivel mejor (a ti o a otro). No salva de Muerte."],
+    [5, "Contable de la casa", "En una tirada de economía tiras dos dados y eliges el mejor."],
+    [6, "Lectura estratégica", "Dos veces por batalla tiras 2 dados de ataque en una ofensiva dirigida por él y te quedas el mejor. No compatible con Medicina competente."],
+    [6, "Medicina competente", "Curas a alguien al borde de la muerte o con dado de Muerte y lo pasas a Mala salud grave. Requiere dado A/F. No compatible con Lectura estratégica."],
+    [7, "Antídoto básico", "Ante un envenenamiento tiras un dado A/F para reducir en un grado el efecto del veneno."],
+    [8, "Red de abastecimiento", "En ejército en campaña/asedio o asentamiento asediado, el consumo de alimentos se reduce un 25%. No acumulable."],
+    [9, "Reclutador", "Reduce el coste de reclutamiento de todas las tropas en 10 de alimento. No acumulable. No compatible con Arquitecto."],
+    [9, "Arquitecto", "Reduce el coste de construcción de todos los edificios en 100 dragones. No acumulable. No compatible con Reclutador."],
+    [10, "Señor de los mares", "Reduce el coste de construcción de todos los barcos en 2 de madera. No acumulable. No compatible con Estratega mayor."],
+    [10, "Estratega mayor", "Mueve hasta 8 unidades propias tras revelar el despliegue; en el 1er turno tira 2 dados de ataque y elige el mejor. No compatible con Señor de los mares."],
+  ],
+  carisma: [
+    [1, "Primera impresión", "Al conocer a alguien por primera vez formulas una pregunta personal/social/política que debe responder, aunque sea breve o evasiva. Dado A/F."],
+    [2, "Trato cordial", "Al iniciar conversación con alguien no hostil conviertes una respuesta negativa en debatible. Dado A/F."],
+    [3, "Solicitud razonable", "Al pedir un favor pequeño y coherente, el objetivo debe aceptarlo o dar una razón clara en rol para negarse. Dado A/F."],
+    [4, "Pregunta incómoda", "Haces una pregunta comprometida; el objetivo responde o delata claramente que oculta algo. Dado A/F."],
+    [5, "Calmar ánimos", "Anulas una escalada inmediata a insulto grave, amenaza o ruptura de negociación. Dado A/F."],
+    [6, "Sembrar rumor", "En un tema social concurrido pones en circulación un rumor menor que se da por cierto. Dado A/F."],
+    [7, "Inocencia interrumpida", "Desacreditas un rumor que circule sobre ti (salvo que haya múltiples testigos). Dado A/F."],
+    [8, "Desarmar con palabras", "Ante una acusación/provocación/ataque verbal, anulas su impacto social y devuelves una réplica a tu favor. Dado A/F."],
+    [9, "Sacar confesión", "Obtienes una confesión útil y verdadera sobre el tema tratado. Dado A/F."],
+    [10, "Discurso inspirador", "Una vez al mes, antes de una acción importante, eliges hasta 3 aliados: su siguiente habilidad tira doble dado y elige el mejor; en combate además +2 de stat a elegir ese tema."],
+  ],
+  magia_antiguos: [
+    [1, "Comunicación animal", "Te comunicas con animales pequeños en tu campo de visión."],
+    [2, "Obediencia animal", "Consigues que un animal pequeño en tu campo de visión te obedezca."],
+    [3, "Posesión animal", "Entras en la mente de un animal pequeño al que estés vinculado."],
+    [4, "Visión de Arciano", "Te conectas con un árbol corazón y ves sucesos del pasado/presente de un territorio con bosque de dioses (una vez, a solicitud del staff)."],
+    [5, "Comunicación animal superior", "Te comunicas con animales de tamaño medio en tu campo de visión."],
+    [6, "Obediencia animal superior", "Un animal mediano te obedece y puede moverse por el territorio. Reemplaza a Obediencia animal."],
+    [7, "Posesión animal superior", "Entras en la mente de un animal grande al que estés vinculado. Reemplaza a Posesión animal."],
+    [8, "Verdevidente", "Una vez al mes pides al staff una predicción de futuro sobre la trama del foro."],
+    [9, "Verdevidente superior", "Una vez al mes pides al staff una predicción de futuro sobre un personaje relacionado contigo."],
+    [10, "Posesión humana", "Entras en la mente de un PNJ. Requiere doble acierto en dados de azar."],
+  ],
+  magia_rhllor: [
+    [1, "Flamas", "Provocas una gran llamarada nacida de una pequeña chispa de fuego."],
+    [2, "Brasa persistente", "Un fuego ritual permanece encendido todo el tema sin combustible, protegiendo a un grupo pequeño del frío leve o penalizaciones menores."],
+    [3, "Marca del Señor de la Luz", "Bendices a un personaje para sumarle un stat de Fuerza o Defensa durante su siguiente pelea."],
+    [4, "Visión en las llamas", "Una vez al mes pides una visión sobre un tema relacionado contigo o con quien sirves."],
+    [5, "Bendición de la brasa", "Marcas con ceniza caliente a otro personaje para que repita una tirada de salud."],
+    [6, "Sombra en las llamas", "Una vez al mes puedes inmunizarte ante una habilidad de carisma."],
+    [7, "Ojos de fuego", "Antes de una decisión importante, la administración te da una pista sobre la mejor decisión a tomar."],
+    [8, "Sombra espía", "Convocas una sombra que espía un tema del territorio (dado de salud + dado A/F). Una vez al mes."],
+    [9, "Sombra asesina", "Convocas una sombra que ataca a un PJ del mismo territorio (10 PV/5 FUE/5 DES/5 AGI; dos dados de salud, el peor). Una vez cada dos meses."],
+    [10, "Beso de la vida", "Devuelves a la vida a alguien recién fallecido (dos dados de salud: uno tuyo, uno del renacido)."],
+  ],
+  magia_sangre: [
+    [1, "Vida extensa", "Te mantienes joven por más de 100 años."],
+    [2, "Glamour", "Alteras pequeños rasgos faciales (ojos, cabello) o parte de tu vestimenta con un glamour."],
+    [3, "Presagio", "Lees el futuro de otro a cambio de una gota de sangre."],
+    [4, "Secreto", "Descubres un secreto de un personaje (a convenir) a través de una gota de sangre. Requiere dado A/F."],
+    [5, "Maldición", "Maldices a otro del mismo territorio: en su siguiente pelea tira doble dado y elige el peor. Una vez al mes."],
+    [6, "Bendición", "Das suerte a otro del mismo territorio: en su siguiente enfrentamiento sus dados suman +1. Una vez al mes."],
+    [7, "Robo de don", "Replicas una habilidad de un personaje en la misma habitación. Dado A/F. Dos veces al mes."],
+    [8, "Enajenación", "Maldices a otro del mismo territorio con enajenación mental durante un tema. Requiere dado A/F. Una vez al mes."],
+    [9, "Maldición mayor", "Maldices a otro para que no use habilidades de conocimiento o carisma en su siguiente evento social."],
+    [10, "Cambiarostros", "Cambias tu rostro por el de otra persona (PNJ) durante un tema."],
+  ],
 };
-const RAMA_LABEL = { fuerza: "FUE", defensa: "DEF", agilidad: "AGI" };
+const RAMA_LABEL = { fuerza: "FUE", defensa: "DEF", agilidad: "AGI", conocimiento: "CON", carisma: "CAR", magia_antiguos: "Antiguos Dioses", magia_rhllor: "R'hllor", magia_sangre: "M. de sangre" };
+const BRANCH_ATTR = { fuerza: "fuerza", defensa: "defensa", agilidad: "agilidad", conocimiento: "conocimiento", carisma: "carisma", magia_antiguos: "magia", magia_rhllor: "magia", magia_sangre: "magia" };
 const TERRITORIOS = [
   { id: "norte", label: "El Norte", color: "#B1A5A5" },
   { id: "valle", label: "El Valle", color: "#6986DD" },
@@ -140,9 +204,11 @@ const PRESETS = [
 let state = {
   view: "duelo", pjs: {}, A: null, B: null, editId: "",
   importText: "", importMsg: "", copied: "", turnoText: "", turnoMsg: "", turnoOpen: false,
-  build: { armaId: "", armaduraId: "", escudoId: "", attrs: { fuerza: 1, defensa: 1, agilidad: 1, conocimiento: 1, carisma: 1, magia: 0 } },
+  build: { armaId: "", armaduraId: "", escudoId: "", hab: [], attrs: { fuerza: 1, defensa: 1, agilidad: 1, conocimiento: 1, carisma: 1, magia: 0 } },
 };
 let copyTimer = null;
+// El fundido de entrada solo se reproduce al cambiar de vista, no en cada re-render (evita parpadeos al teclear).
+let fadeCss = "", lastView = null;
 
 /* ---------- Modelo ---------- */
 function blankPJ(nombre, color) {
@@ -312,6 +378,15 @@ function set(next) { Object.assign(state, next); persist(); render(); }
 function setSide(side, fields) { state[side] = { ...state[side], ...fields }; persist(); render(); }
 function setLibPj(id, fields) { state.pjs = { ...state.pjs, [id]: { ...normalizePJ(state.pjs[id]), ...fields } }; persist(); render(); }
 function setBuild(fields) { state.build = { ...state.build, ...fields }; persist(); render(); }
+function addHabBuild(val) {
+  if (!val) return;
+  const parts = val.split(":"); const rama = parts[0]; const item = HABCAT[rama] && HABCAT[rama][+parts[1]];
+  if (!item) return;
+  const hab = state.build.hab || [];
+  if (hab.some((h) => h.nombre === item[1])) return;
+  setBuild({ hab: [...hab, { nombre: item[1], desc: item[2] }] });
+}
+function rmHabBuild(i) { const hab = (state.build.hab || []).slice(); hab.splice(i, 1); setBuild({ hab }); }
 function copy(key, text) {
   try { navigator.clipboard.writeText(text); } catch (e) {}
   state.copied = key; clearTimeout(copyTimer);
@@ -331,12 +406,14 @@ function equipOpts() {
 }
 function habOptsFor(pj) {
   const habOpts = [{ v: "", l: "+ Añadir habilidad…" }];
-  ["fuerza", "defensa", "agilidad"].forEach((rama) => {
-    const av = n(pj.attrs[rama]);
+  Object.keys(HABCAT).forEach((rama) => {
+    const av = n(pj.attrs[BRANCH_ATTR[rama]]);
     HABCAT[rama].forEach((h, idx) => { if (h[0] <= av && !(pj.hab || []).some((x) => x.nombre === h[1])) habOpts.push({ v: rama + ":" + idx, l: RAMA_LABEL[rama] + " · " + h[1] + " (min " + h[0] + ")" }); });
   });
   return habOpts;
 }
+// Coste en dragones de las habilidades: 5 gratis; extras escalan 50, 100, 150…
+function costoHabExtra(nHab) { let c = 0; const extra = Math.max(0, nHab - 5); for (let k = 1; k <= extra; k++) c += 50 * k; return c; }
 
 /* ---------- Habilidades: mutadores ---------- */
 function addHabPresetLib(id, val) { if (!val) return; const [rama, idx] = val.split(":"); const item = HABCAT[rama] && HABCAT[rama][+idx]; if (!item) return; const pj = normalizePJ(state.pjs[id]); if ((pj.hab || []).some((h) => h.nombre === item[1])) return; setLibPj(id, { hab: [...(pj.hab || []), { nombre: item[1], desc: item[2], usada: false, custom: false }] }); }
@@ -385,6 +462,8 @@ function render() {
   const focus = captureFocus();
   const wrapStyle = chromeTokens() + "min-height:100vh;position:relative;background:radial-gradient(120% 80% at 50% -10%, rgba(130,182,198,0.05), transparent 55%),radial-gradient(90% 60% at 50% 120%, rgba(199,159,0,0.05), transparent 60%),#0a0a0b;";
   const view = state.view;
+  fadeCss = view !== lastView ? "${fadeCss}" : "";
+  lastView = view;
   const body = view === "personajes" ? personajesView() : view === "build" ? buildView() : view === "reglas" ? reglasView() : dueloView();
   document.getElementById("app").innerHTML =
     `<div style="${wrapStyle}">` +
@@ -515,7 +594,7 @@ function dueloView() {
   const bbCode = '<div class="duelos">\n' + bbTablilla(A, B, cAB, cBA) + "\n" + bbTablilla(B, A, cBA, cAB) + "\n</div>";
 
   return (
-    `<section style="animation:wodfade .35s ease both;">` +
+    `<section style="${fadeCss}">` +
       tituloSec("Duelo") +
       `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 20px;max-width:660px;">Carga los personajes desde tu biblioteca o pega las tablillas del turno anterior. Ajusta el <b style="color:var(--text);">PV actual</b> y si cada uno <b style="color:var(--text);">ataca</b> este turno, introduce los dados y la app calcula ataque, defensa, daño y PV resultante.</p>` +
       `<details ${state.turnoOpen ? "open" : ""} style="max-width:820px;margin:0 auto 20px;background:var(--panel);border:1px solid var(--line-soft);padding:0 16px;">` +
@@ -571,7 +650,7 @@ function personajesView() {
     `</div>`;
 
   return (
-    `<section style="animation:wodfade .35s ease both;">` +
+    `<section style="${fadeCss}">` +
       tituloSec("Personajes") +
       `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 22px;max-width:640px;">Crea y guarda tus personajes: rellena la ficha o pégala desde un código/BBCode. Luego cárgalos en el duelo.</p>` +
       `<div class="wod-pj-grid" style="display:grid;gap:20px;align-items:start;">` + listaBox + editorHtml() + `</div>` +
@@ -678,10 +757,20 @@ function buildView() {
   if (arma && arma.noShield && b.escudoId) aviso = arma.nombre + " no permite portar escudo.";
   if (arma && arma.note) aviso = (aviso ? aviso + " " : "") + arma.note;
 
+  const bHab = b.hab || [];
+  const habCoste = costoHabExtra(bHab.length);
+  const habExtra = Math.max(0, bHab.length - 5);
+  const totalCoste = coste + habCoste;
+  const habOpts = habOptsFor({ attrs: b.attrs, hab: bHab });
+  const habListHtml = bHab.length
+    ? bHab.map((h, i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-soft);"><span style="font-size:12.5px;color:var(--text);">${esc(h.nombre)}</span><button class="h-danger" data-act="b-hab-remove" data-i="${i}" style="cursor:pointer;width:22px;height:22px;color:var(--muted);background:transparent;border:1px solid var(--line-soft);border-radius:4px;font-size:13px;">×</button></div>`).join("")
+    : `<p style="margin:4px 0 0;font-size:11.5px;color:var(--muted);font-style:italic;">Sin habilidades añadidas (tienes 5 gratis de base).</p>`;
+  const habLineHtml = habCoste > 0 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line-soft);font-size:12.5px;"><span style="color:var(--text);">Habilidades (${habExtra} extra)</span><span style="color:var(--gold);font-variant-numeric:tabular-nums;">${habCoste}</span></div>` : "";
+
   return (
-    `<section style="animation:wodfade .35s ease both;max-width:920px;margin:0 auto;">` +
+    `<section style="${fadeCss}max-width:920px;margin:0 auto;">` +
       tituloSec("Configurador de build") +
-      `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 22px;max-width:640px;">Elige atributos y equipo de tienda y mira al instante cuánto cuesta en dragones y con qué stats acaba tu personaje.</p>` +
+      `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 22px;max-width:640px;">Elige atributos, equipo y habilidades de la tienda y mira al instante cuánto cuesta en dragones y con qué stats acaba tu personaje.</p>` +
       `<div class="wod-duel-grid" style="display:grid;gap:20px;">` +
         `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;">` +
           `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;"><span style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);">Atributos y equipo</span><button class="h-cyan" data-act="b-cargartu" style="cursor:pointer;font-size:11px;color:var(--cyan);background:transparent;border:1px solid rgba(130,182,198,0.35);border-radius:4px;padding:5px 10px;">Cargar equipo de «Tú»</button></div>` +
@@ -692,13 +781,16 @@ function buildView() {
             `<label style="display:flex;align-items:center;gap:8px;"><i class="ph ph-shield" title="Escudo" style="color:var(--gold);font-size:16px;width:18px;"></i><select class="inp" data-act="b-escudo" style="flex:1;font-size:12.5px;padding:7px 8px;">${options(optList(ESCUDOS, "— Sin escudo —"), b.escudoId)}</select></label>` +
           `</div>` +
           (aviso ? `<div style="font-size:11px;color:var(--danger);margin-top:8px;">${esc(aviso)}</div>` : "") +
+          `<div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:16px 0 6px;">Habilidades <span style="color:${habExtra > 0 ? "var(--gold-soft)" : "var(--muted)"};">· ${bHab.length} (5 gratis · extra 50 / 100 / 150…)</span></div>` +
+          `<select class="inp" data-act="b-hab-add" style="width:100%;font-size:12px;padding:7px 8px;margin-bottom:8px;">${options(habOpts, "")}</select>` +
+          `<div>${habListHtml}</div>` +
         `</div>` +
         `<div style="display:flex;flex-direction:column;gap:16px;">` +
           `<div style="background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--gold-dim);border-radius:6px;padding:18px;text-align:center;">` +
-            `<div style="${CINZEL}letter-spacing:0.18em;text-transform:uppercase;font-size:11px;color:var(--muted);">Coste total del equipo</div>` +
-            `<div style="${CINZEL}font-weight:700;font-size:clamp(30px,6vw,42px);color:var(--gold);line-height:1.1;margin:4px 0;">${coste.toLocaleString("es-ES")}</div>` +
+            `<div style="${CINZEL}letter-spacing:0.18em;text-transform:uppercase;font-size:11px;color:var(--muted);">Coste total</div>` +
+            `<div style="${CINZEL}font-weight:700;font-size:clamp(30px,6vw,42px);color:var(--gold);line-height:1.1;margin:4px 0;">${totalCoste.toLocaleString("es-ES")}</div>` +
             `<div style="font-size:11px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;"><i class="ph ph-coins" style="vertical-align:-2px;"></i> Dragones</div>` +
-            (compra.length === 0 ? `<p style="margin:10px 0 0;font-size:12px;color:var(--muted);font-style:italic;">Sin equipo seleccionado.</p>` : compraHtml) +
+            ((compra.length === 0 && habCoste === 0) ? `<p style="margin:10px 0 0;font-size:12px;color:var(--muted);font-style:italic;">Sin equipo ni habilidades extra.</p>` : (compraHtml + habLineHtml)) +
           `</div>` +
           `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;"><div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);margin-bottom:10px;">Stats resultantes</div>${stats}</div>` +
         `</div>` +
@@ -712,7 +804,7 @@ function reglasView() {
   const H = CINZEL + "font-weight:500;letter-spacing:0.14em;text-transform:uppercase;font-size:15px;color:var(--cyan);margin:0 0 8px;";
   const sec = (titulo, cuerpo) => `<div><h3 style="${H}">${titulo}</h3>${cuerpo}</div>`;
   return (
-    `<section style="animation:wodfade .35s ease both;max-width:820px;margin:0 auto;">` +
+    `<section style="${fadeCss}max-width:820px;margin:0 auto;">` +
       tituloSec("Reglas de combate") +
       `<div style="display:flex;flex-direction:column;gap:24px;font-size:14px;line-height:1.7;color:var(--text);margin-top:14px;">` +
         sec("Tiradas y cálculo", `<p style="margin:0 0 8px;">En cada intercambio ambos lanzan un <strong style="color:var(--gold);">dado de ataque</strong> y un <strong style="color:var(--gold);">dado de defensa</strong>. Al ataque se le suma la <strong style="color:var(--gold);">Fuerza</strong> (o <strong style="color:var(--gold);">Agilidad</strong> a distancia) más los bonos del arma; a la defensa se le suma la <strong style="color:var(--gold);">Defensa</strong> más armaduras y escudos.</p><p style="margin:0;">Un <strong style="color:var(--danger);">1 natural</strong> en ataque es Fallo (pega 0). Un <strong style="color:var(--danger);">1 natural</strong> en defensa solo aplica Defensa + armadura + escudo, sin sumar el dado.</p>`) +
@@ -742,7 +834,7 @@ function restoreFocus(info) {
   if (!info) return;
   const el = document.querySelector('[data-fid="' + info.fid + '"]');
   if (!el) return;
-  el.focus();
+  try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
   try { if (info.start != null) el.setSelectionRange(info.start, info.end); } catch (e) {}
 }
 
@@ -772,8 +864,9 @@ function handleClick(e) {
     case "ed-hab-remove": rmHabLib(state.editId, i); break;
     case "ed-usarTu": loadInto("A", state.editId); break;
     case "ed-usarRival": loadInto("B", state.editId); break;
-    case "b-cargartu": { const A = state.A || {}; setBuild({ armaId: A.armaId || "", armaduraId: A.armaduraId || "", escudoId: A.escudoId || "", attrs: { ...state.build.attrs, ...(A.attrs || {}) } }); break; }
+    case "b-cargartu": { const A = state.A || {}; setBuild({ armaId: A.armaId || "", armaduraId: A.armaduraId || "", escudoId: A.escudoId || "", hab: (A.hab || []).map((h) => ({ nombre: h.nombre, desc: h.desc })), attrs: { ...state.build.attrs, ...(A.attrs || {}) } }); break; }
     case "b-remove": setBuild({ [t.dataset.slot]: "" }); break;
+    case "b-hab-remove": rmHabBuild(+t.dataset.i); break;
   }
 }
 function handleInput(e) {
@@ -824,6 +917,7 @@ function handleChange(e) {
     case "b-arma": setBuild({ armaId: v }); break;
     case "b-armadura": setBuild({ armaduraId: v }); break;
     case "b-escudo": setBuild({ escudoId: v }); break;
+    case "b-hab-add": addHabBuild(v); break;
   }
 }
 function accentColorForSide(v, fallback) { return v === "enemigo" ? ENEMY : ((TERRITORIOS.find((t) => t.id === v) || {}).color || fallback); }
@@ -837,7 +931,7 @@ function init() {
   const A = s.A ? normalizePJ(s.A) : blankPJ("", "#82b6c6");
   const B = s.B ? normalizePJ(s.B) : blankPJ("", ENEMY);
   if (!s.B) B.territorio = "enemigo";
-  const build = s.build ? { armaId: s.build.armaId || "", armaduraId: s.build.armaduraId || "", escudoId: s.build.escudoId || "", attrs: { ...state.build.attrs, ...(s.build.attrs || {}) } } : state.build;
+  const build = s.build ? { armaId: s.build.armaId || "", armaduraId: s.build.armaduraId || "", escudoId: s.build.escudoId || "", hab: s.build.hab || [], attrs: { ...state.build.attrs, ...(s.build.attrs || {}) } } : state.build;
   const view = ["reglas", "build", "duelo", "personajes"].indexOf(s.view) > -1 ? s.view : "duelo";
   const pjs = s.pjs || {};
   state = { ...state, pjs, A, B, build, view, editId: Object.keys(pjs)[0] || "" };
