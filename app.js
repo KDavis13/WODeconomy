@@ -328,6 +328,7 @@ function header() {
         `<button class="h-goldsoft" data-act="nav" data-view="micasa" style="${on}">Economía</button>` +
         `<a class="h-goldsoft" href="duelo.html" style="${off}">Duelos</a>` +
         `<a class="h-goldsoft" href="datos.html" style="${off}">Datos</a>` +
+        `<a class="h-goldsoft" href="trama.html" style="${off}">Trama</a>` +
       `</nav>` +
     `</header>`
   );

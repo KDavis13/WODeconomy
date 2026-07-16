@@ -18,6 +18,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+/* Esquinas rectas en toda la app (preferencia de diseño) */
+*, *::before, *::after { border-radius: 0 !important; }
 html, body { margin: 0; }
 body {
   background:

@@ -12,6 +12,7 @@
     --cyan:#82b6c6; --text:#ddd6c6; --muted:#8f8a7c; --line:rgba(199,159,0,0.20); --line-soft:rgba(221,214,198,0.08); --danger:#c05a4a;
   }
   *, *::before, *::after { box-sizing: border-box; }
+  *, *::before, *::after { border-radius: 0 !important; }
   html, body { margin: 0; }
   body {
     background: radial-gradient(120% 80% at 50% -10%, rgba(130,182,198,0.05), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(199,159,0,0.05), transparent 60%), var(--bg);
@@ -70,6 +71,7 @@
     <a class="tab off" href="index.html">Economía</a>
     <a class="tab off" href="duelo.html">Duelos</a>
     <a class="tab on" href="datos.html">Datos</a>
+    <a class="tab off" href="trama.html">Trama</a>
   </nav>
 </header>
 
@@ -95,7 +97,7 @@
 
 <footer>Win or Die · Cámara del Tesoro</footer>
 
-<script src="backup.js?v=5"></script>
+<script src="backup.js?v=7"></script>
 <script>
   function refreshSummary() {
     var casas = 0, pjs = 0;

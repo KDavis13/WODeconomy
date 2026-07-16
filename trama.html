@@ -1,0 +1,204 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WODeconomy · Trama</title>
+<meta name="description" content="Consulta de personajes de la trama (temporal)." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<style>
+  :root {
+    --bg:#0a0a0b; --panel:#121210; --panel-2:#17160f; --gold:#c79f00; --gold-soft:#e6bd1f; --gold-dim:#7c6410;
+    --cyan:#82b6c6; --green:#68A85E; --text:#ddd6c6; --muted:#8f8a7c; --line:rgba(199,159,0,0.20); --line-soft:rgba(221,214,198,0.08); --danger:#c05a4a;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  *, *::before, *::after { border-radius: 0 !important; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(120% 80% at 50% -10%, rgba(130,182,198,0.05), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(199,159,0,0.05), transparent 60%), var(--bg);
+    color: var(--text); font-family: "Mulish", system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  .frame-outer, .frame-inner { position: fixed; pointer-events: none; z-index: 5; }
+  .frame-outer { inset: 8px; border: 1px solid var(--gold-dim); opacity: 0.55; }
+  .frame-inner { inset: 12px; border: 1px solid rgba(199,159,0,0.10); }
+  header { position: relative; z-index: 2; display: flex; align-items: center; gap: 20px; padding: 22px clamp(24px,5vw,64px) 14px; flex-wrap: wrap; }
+  .brand span.t { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: 0.34em; font-size: 22px; color: #fff; line-height: 1; display: block; }
+  .brand span.s { font-family: "Cinzel", serif; letter-spacing: 0.42em; font-size: 11px; color: var(--cyan); text-transform: uppercase; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { cursor: pointer; font-family: "Cinzel", serif; letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px; padding: 9px 15px; border-radius: 4px; white-space: nowrap; }
+  .tab.off { color: var(--gold); border: 1px solid var(--gold-dim); background: transparent; }
+  .tab.off:hover { background: rgba(199,159,0,0.10); }
+  .tab.on { color: #0a0a0b; background: var(--gold); border: 1px solid var(--gold); }
+  .filigree { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; justify-content: center; padding: 0 clamp(24px,5vw,64px); }
+  .filigree .line { height: 1px; flex: 1; max-width: 420px; }
+  .filigree .l { background: linear-gradient(to right, transparent, var(--gold-dim)); }
+  .filigree .r { background: linear-gradient(to left, transparent, var(--gold-dim)); }
+  .filigree span { color: var(--gold); font-size: 14px; }
+  main { position: relative; z-index: 2; max-width: 1080px; margin: 0 auto; padding: 20px clamp(12px,4vw,48px) 72px; }
+  h2.title { text-align: center; font-family: "Cinzel", serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; font-size: clamp(20px,3vw,26px); color: var(--gold); margin: 10px 0 4px; }
+  .sub { text-align: center; color: var(--muted); font-size: 13px; margin: 0 auto 18px; max-width: 640px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .search { background: #0d0d0c; border: 1px solid var(--line-soft); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 13px; padding: 9px 12px; min-width: 220px; }
+  .search:focus { outline: none; border-color: var(--gold); }
+  .chip { cursor: pointer; font-size: 12px; letter-spacing: 0.04em; padding: 7px 14px; border-radius: 20px; background: transparent; color: var(--muted); border: 1px solid var(--line-soft); }
+  .chip:hover { border-color: var(--gold); color: var(--gold-soft); }
+  .chip.on { color: var(--gold-soft); border-color: var(--gold); }
+  .count { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+  thead th { position: sticky; top: 0; background: var(--panel-2); color: var(--gold); font-family: "Cinzel", serif; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; text-align: center; padding: 11px 8px; border-bottom: 1px solid var(--gold-dim); cursor: pointer; white-space: nowrap; user-select: none; }
+  thead th.l { text-align: left; }
+  thead th:hover { color: var(--gold-soft); }
+  thead th .arr { opacity: 0.5; font-size: 9px; }
+  tbody td { padding: 9px 8px; border-bottom: 1px solid var(--line-soft); text-align: center; }
+  tbody td.name { text-align: left; font-family: "Cinzel", serif; font-size: 14px; color: var(--text); white-space: nowrap; }
+  tbody td.hab { text-align: left; color: var(--muted); font-size: 12.5px; }
+  tbody tr:hover { background: rgba(199,159,0,0.05); }
+  .stat { font-family: "Cinzel", serif; }
+  .stat.hi { color: var(--gold); font-weight: 700; }
+  .pill { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  footer { position: relative; z-index: 2; text-align: center; padding: 0 24px 40px; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-family: "Cinzel", serif; }
+</style>
+
+<div class="frame-outer"></div>
+<div class="frame-inner"></div>
+
+<header>
+  <div class="brand" style="margin-right:auto;">
+    <span class="t">WIN&nbsp;OR&nbsp;DIE</span>
+    <span class="s">Trama</span>
+  </div>
+  <nav>
+    <a class="tab off" href="index.html">Economía</a>
+    <a class="tab off" href="duelo.html">Duelos</a>
+    <a class="tab off" href="datos.html">Datos</a>
+    <a class="tab on" href="trama.html">Trama</a>
+  </nav>
+</header>
+
+<div class="filigree"><div class="line l"></div><span>✦</span><div class="line r"></div></div>
+
+<main>
+  <h2 class="title">Personajes de la trama</h2>
+  <p class="sub">Consulta de estadísticas y grupo recomendado. Tabla temporal — busca por nombre, filtra por grupo o pulsa una columna para ordenar.</p>
+
+  <div class="controls">
+    <input class="search" id="search" type="text" placeholder="🔍 Buscar personaje…" />
+    <button class="chip on" data-grupo="">Todos</button>
+    <button class="chip" data-grupo="Pelea">Pelea</button>
+    <button class="chip" data-grupo="Infiltrado">Infiltrado</button>
+    <button class="chip" data-grupo="Trepar">Trepar</button>
+  </div>
+  <div class="count" id="count"></div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="l" data-sort="nombre">Personaje <span class="arr"></span></th>
+          <th data-sort="pv" title="Puntos de vida">PV <span class="arr"></span></th>
+          <th data-sort="fue" title="Fuerza">FUE <span class="arr"></span></th>
+          <th data-sort="def" title="Defensa">DEF <span class="arr"></span></th>
+          <th data-sort="agi" title="Agilidad">AGI <span class="arr"></span></th>
+          <th data-sort="con" title="Conocimiento">CON <span class="arr"></span></th>
+          <th data-sort="car" title="Carisma">CAR <span class="arr"></span></th>
+          <th class="l" data-sort="hab">Habilidades <span class="arr"></span></th>
+          <th class="l" data-sort="grupo">Grupo recomendado <span class="arr"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<footer>Win or Die · Trama (temporal)</footer>
+
+<script>
+  var PERSONAJES = [
+    { nombre: "Steffon Baratheon", pv: 20, fue: 10, def: 10, agi: 1, con: 3, car: 3, hab: "", grupo: "Pelea/Infiltrado" },
+    { nombre: "Benjen Mormont", pv: 22, fue: 9, def: 6, agi: 3, con: 1, car: 1, hab: "Arrollar", grupo: "Pelea" },
+    { nombre: "Beron Tarly", pv: 22, fue: 10, def: 5, agi: 3, con: 1, car: 1, hab: "Arrollar", grupo: "Pelea" },
+    { nombre: "Gawen Dayne", pv: 23, fue: 6, def: 7, agi: 2, con: 1, car: 2, hab: "", grupo: "Infiltrado" },
+    { nombre: "Maegor Targaryen", pv: 19, fue: 8, def: 4, agi: 3, con: 3, car: 2, hab: "", grupo: "Pelea" },
+    { nombre: "Rickard Stark", pv: 20, fue: 10, def: 4, agi: 2, con: 5, car: 1, hab: "", grupo: "Pelea/Infiltrado" },
+    { nombre: "Mors Umber", pv: 22, fue: 10, def: 4, agi: 1, con: 1, car: 1, hab: "Arrollar", grupo: "Pelea" },
+    { nombre: "Gerold Hightower", pv: 21, fue: 10, def: 5, agi: 2, con: 2, car: 1, hab: "", grupo: "Pelea" },
+    { nombre: "Deana Dustin", pv: 15, fue: 1, def: 1, agi: 6, con: 2, car: 2, hab: "Boticario Novato", grupo: "Trepar" },
+    { nombre: "Delena Redwyne", pv: 23, fue: 3, def: 3, agi: 9, con: 6, car: 1, hab: "", grupo: "Trepar" },
+    { nombre: "Myriah Manwoody", pv: 20, fue: 2, def: 4, agi: 8, con: 4, car: 3, hab: "Boticario Novato", grupo: "Trepar" },
+    { nombre: "Armand Roxton", pv: 13, fue: 1, def: 3, agi: 9, con: 5, car: 1, hab: "", grupo: "Trepar" },
+    { nombre: "Ryon Santagar", pv: 20, fue: 2, def: 4, agi: 7, con: 3, car: 1, hab: "", grupo: "Trepar" },
+    { nombre: "Malaenys de Asshai", pv: 13, fue: 1, def: 2, agi: 1, con: 5, car: 1, hab: "Boticario Novato, Medicina", grupo: "Infiltrado" },
+    { nombre: "Luceon Hunter", pv: 16, fue: 8, def: 4, agi: 1, con: 2, car: 3, hab: "", grupo: "Pelea" },
+    { nombre: "Ormund Baratheon", pv: 19, fue: 6, def: 2, agi: 1, con: 10, car: 2, hab: "", grupo: "Infiltrado" },
+    { nombre: "Byren Caron", pv: 23, fue: 7, def: 5, agi: 2, con: 2, car: 2, hab: "", grupo: "Pelea" },
+    { nombre: "Aerys Targaryen", pv: 20, fue: 3, def: 2, agi: 3, con: 2, car: 6, hab: "", grupo: "Infiltrado" },
+    { nombre: "Cassandra Crakehall", pv: 23, fue: 3, def: 4, agi: 4, con: 3, car: 1, hab: "", grupo: "Infiltrado" },
+    { nombre: "Alyn Lannister", pv: 20, fue: 5, def: 5, agi: 2, con: 1, car: 3, hab: "", grupo: "Infiltrado" },
+    { nombre: "Garth Tyrell", pv: 18, fue: 3, def: 4, agi: 1, con: 4, car: 4, hab: "", grupo: "Infiltrado" },
+    { nombre: "Lyn Waxley", pv: 19, fue: 8, def: 5, agi: 3, con: 1, car: 1, hab: "", grupo: "Pelea/Infiltrado" },
+    { nombre: "Ronnel Arryn", pv: 18, fue: 8, def: 4, agi: 2, con: 1, car: 4, hab: "", grupo: "Infiltrado" },
+    { nombre: "Armond Connington", pv: 24, fue: 10, def: 4, agi: 3, con: 2, car: 1, hab: "", grupo: "Pelea" },
+    { nombre: "Oswell Whent", pv: 14, fue: 6, def: 5, agi: 6, con: 1, car: 2, hab: "", grupo: "¿Trepar?" },
+    { nombre: "Tywin Lannister", pv: 15, fue: 2, def: 3, agi: 1, con: 6, car: 6, hab: "", grupo: "Infiltrado" },
+  ];
+  var STATS = ["pv", "fue", "def", "agi", "con", "car"];
+  var state = { search: "", grupo: "", sort: "", dir: 1 };
+
+  function grupoColor(g) {
+    if (/Trepar/i.test(g)) return "var(--green)";
+    if (/Infiltrado/i.test(g) && !/Pelea/i.test(g)) return "var(--cyan)";
+    return "var(--gold)"; // Pelea y Pelea/Infiltrado
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function render() {
+    var rows = PERSONAJES.filter(function (p) {
+      if (state.grupo && p.grupo.toLowerCase().indexOf(state.grupo.toLowerCase()) === -1) return false;
+      if (state.search && p.nombre.toLowerCase().indexOf(state.search.toLowerCase()) === -1) return false;
+      return true;
+    });
+    if (state.sort) {
+      rows = rows.slice().sort(function (a, b) {
+        var va = a[state.sort], vb = b[state.sort];
+        if (typeof va === "number") return (va - vb) * state.dir;
+        return String(va).localeCompare(String(vb), "es") * state.dir;
+      });
+    }
+    var html = rows.map(function (p) {
+      var stats = STATS.map(function (k) {
+        var hi = p[k] >= 8 ? " hi" : "";
+        return '<td><span class="stat' + hi + '">' + p[k] + "</span></td>";
+      }).join("");
+      return "<tr>" +
+        '<td class="name">' + esc(p.nombre) + "</td>" +
+        stats +
+        '<td class="hab">' + (p.hab ? esc(p.hab) : "—") + "</td>" +
+        '<td class="l"><span class="pill" style="color:' + grupoColor(p.grupo) + ";border:1px solid " + grupoColor(p.grupo) + ';background:rgba(255,255,255,0.02);">' + esc(p.grupo) + "</span></td>" +
+        "</tr>";
+    }).join("");
+    document.getElementById("tbody").innerHTML = html || '<tr><td colspan="9" style="padding:20px;color:var(--muted);">Sin resultados.</td></tr>';
+    document.getElementById("count").textContent = rows.length + " de " + PERSONAJES.length + " personajes";
+    document.querySelectorAll("thead th").forEach(function (th) {
+      var arr = th.querySelector(".arr");
+      if (!arr) return;
+      arr.textContent = th.dataset.sort === state.sort ? (state.dir === 1 ? "▲" : "▼") : "";
+    });
+    document.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("on", (c.dataset.grupo || "") === state.grupo); });
+  }
+
+  document.getElementById("search").addEventListener("input", function () { state.search = this.value; render(); });
+  document.querySelectorAll(".chip").forEach(function (c) {
+    c.addEventListener("click", function () { state.grupo = c.dataset.grupo || ""; render(); });
+  });
+  document.querySelectorAll("thead th").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var k = th.dataset.sort;
+      if (state.sort === k) state.dir = -state.dir;
+      else { state.sort = k; state.dir = STATS.indexOf(k) > -1 ? -1 : 1; }
+      render();
+    });
+  });
+  render();
+</script>

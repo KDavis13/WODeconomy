@@ -114,10 +114,32 @@ const TERRITORIOS = [
 ];
 const ABBR2KEY = { FUE: "fuerza", DEF: "defensa", AGI: "agilidad", CON: "conocimiento", CAR: "carisma", MAG: "magia" };
 
+// Rivales predefinidos de la trama (seleccionables en el desplegable "Cargar").
+const PRESETS = [
+  {
+    id: "derrick", nombre: "Derrick Fossoway", clase: "Rival de la trama", color: ENEMY, territorio: "enemigo", pvBonus: 20,
+    attrs: { fuerza: 10, defensa: 10, agilidad: 7, conocimiento: 1, carisma: 1, magia: 0 },
+    hab: [
+      { nombre: "Ira", desc: "Cada 3 golpes recibidos de cualquier enemigo, su siguiente ataque tiene un +4 al ataque.", custom: true },
+      { nombre: "Golpe giratorio", desc: "Si obtiene un dado 7 o superior provoca un daño de área neto de −2 PV a todos los enemigos (cuentan los que estén peleando).", custom: true },
+      { nombre: "Mazazo", desc: "Si su DEF supera a la DEF enemiga, en el primer ataque de toda la pelea suma la mitad de su DEF a su ataque (+5).", custom: true },
+    ],
+  },
+  {
+    id: "escudero", nombre: "Escudero de Fossoway", clase: "Rival de la trama", color: ENEMY, territorio: "enemigo", pvBonus: 20,
+    attrs: { fuerza: 8, defensa: 10, agilidad: 9, conocimiento: 1, carisma: 1, magia: 0 },
+    hab: [
+      { nombre: "Sigilo", desc: "Ignora el stat de DEF del enemigo al sacar un dado 7 o superior.", custom: true },
+      { nombre: "Hoja corrompida", desc: "Si obtiene un dado de 3 o inferior realiza un ataque de daga que inflige hemorragia al enemigo, restándole −2 PV durante ese y los siguientes 2 turnos. La hemorragia puede detenerse con la curación de un médico.", custom: true },
+      { nombre: "Resistencia", desc: "Si su PV es igual o inferior a la mitad, aumenta su FUE en +3 y su DEF en +3 de forma permanente.", custom: true },
+    ],
+  },
+];
+
 /* ---------- Estado ---------- */
 let state = {
   view: "duelo", pjs: {}, A: null, B: null, editId: "",
-  importText: "", importMsg: "", copied: "",
+  importText: "", importMsg: "", copied: "", turnoText: "", turnoMsg: "", turnoOpen: false,
   build: { armaId: "", armaduraId: "", escudoId: "", attrs: { fuerza: 1, defensa: 1, agilidad: 1, conocimiento: 1, carisma: 1, magia: 0 } },
 };
 let copyTimer = null;
@@ -127,7 +149,8 @@ function blankPJ(nombre, color) {
   return {
     nombre: nombre || "", clase: "", color: color || "#c79f00", territorio: "",
     attrs: { fuerza: 1, defensa: 1, agilidad: 1, conocimiento: 1, carisma: 1, magia: 0 },
-    armaId: "", armaduraId: "", escudoId: "", hab: [],
+    armaId: "", armaduraId: "", escudoId: "", hab: [], pvBonus: "",
+    pvAct: "", ataca: true,
     dAtk: "", dDef: "", mAtk: "", mDef: "", mDmg: "", mProt: "",
   };
 }
@@ -138,7 +161,8 @@ function normalizePJ(p) {
   return {
     nombre: p.nombre || "", clase: p.clase || "", color: p.color || "#c79f00", territorio: p.territorio || "",
     attrs: { ...b.attrs, ...(p.attrs || {}) },
-    armaId: p.armaId || "", armaduraId: p.armaduraId || "", escudoId: p.escudoId || "",
+    armaId: p.armaId || "", armaduraId: p.armaduraId || "", escudoId: p.escudoId || "", pvBonus: p.pvBonus || "",
+    pvAct: p.pvAct != null ? p.pvAct : "", ataca: p.ataca === false ? false : true,
     hab: (p.hab || []).map((h) => ({ nombre: h.nombre || "", desc: h.desc || "", usada: !!h.usada, custom: !!h.custom })),
     dAtk: p.dAtk || "", dDef: p.dDef || "", mAtk: p.mAtk || "", mDef: p.mDef || "", mDmg: p.mDmg || "", mProt: p.mProt || "",
   };
@@ -157,7 +181,9 @@ function eq(pj) {
   return acc;
 }
 function ranged(pj) { const a = findArma(pj.armaId); return !!(a && a.ranged); }
-function pvMax(pj) { return 20 + eq(pj).pv; }
+function pvMax(pj) { return 20 + eq(pj).pv + n(pj.pvBonus); }
+// PV actual efectivo: el editado a mano, o el máximo si está vacío.
+function pvBase(pj) { return (pj.pvAct !== "" && pj.pvAct != null) ? n(pj.pvAct) : pvMax(pj); }
 function effAgi(pj) { return n(pj.attrs.agilidad) + eq(pj).agi; }
 function sign(x) { return (x >= 0 ? "+" : "−") + Math.abs(x); }
 function _hx(h) { h = (h || "#c79f00").replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join(""); const v = parseInt(h, 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; }
@@ -179,7 +205,7 @@ function crossing(att, def) {
   const dmgBonus = e.dmg + n(att.mDmg);
   const protDef = ed.prot + n(def.mProt);
   const dmg = hit ? Math.max(0, base + dmgBonus - protDef) : 0;
-  const pvMaxDef = pvMax(def);
+  const pvMaxDef = pvBase(def);
   return { ranged: rng, atkAttrKey, atkAttrVal, atkFijo, nat1atk, ataqueTotal, nat1def, defFijo, defensaTotal, hit, base, dmgBonus, protDef, dmg, pvMaxDef };
 }
 function estadoPV(pv) {
@@ -230,12 +256,14 @@ function parseBB(raw) {
 function accionesFor(me, foe, meAtk, myDef) {
   const foeName = foe.nombre || "rival";
   const atkLabel = meAtk.ranged ? "Agilidad" : "Fuerza";
-  const l1 = meAtk.nat1atk ? "1 natural → Fallo, el ataque pega 0."
+  const l1 = meAtk.noAtaca ? "No ataca este turno."
+    : meAtk.nat1atk ? "1 natural → Fallo, el ataque pega 0."
     : atkLabel + "+equipo (" + meAtk.atkFijo + ") + dado (" + n(me.dAtk) + ") = " + meAtk.ataqueTotal;
   const l2 = myDef.nat1def ? "1 natural: solo Defensa+equipo (" + myDef.defFijo + ") = " + myDef.defensaTotal
     : "Defensa+equipo (" + myDef.defFijo + ") + dado (" + n(me.dDef) + ") = " + myDef.defensaTotal;
   let l3;
-  if (!meAtk.hit) { l3 = meAtk.ataqueTotal + " no supera la defensa de " + foeName + " (" + meAtk.defensaTotal + "): no impacta."; }
+  if (meAtk.noAtaca) { l3 = "—"; }
+  else if (!meAtk.hit) { l3 = meAtk.ataqueTotal + " no supera la defensa de " + foeName + " (" + meAtk.defensaTotal + "): no impacta."; }
   else {
     const pieces = [meAtk.ataqueTotal + " − " + meAtk.defensaTotal];
     if (meAtk.dmgBonus) pieces.push(sign(meAtk.dmgBonus) + " daño");
@@ -251,7 +279,7 @@ function bbTablilla(me, foe, meAtk, myDef) {
   const ac = accionesFor(me, foe, meAtk, myDef);
   let out = '<div class="tablillita duelo" style="--group:' + me.color + ';">\n';
   out += '<div class="due-top">\n<b>' + (me.nombre || "Nombre") + "</b>\n<i>" + (me.clase || "Clase") + "</i>\n</div>\n";
-  out += '<div class="due-data">\n<span>\n' + stStr + "\n</span>\n<span>\n<u><b>" + pvMax(me) + "</b><i>PV</i></u>\n</span>\n</div>\n";
+  out += '<div class="due-data">\n<span>\n' + stStr + "\n</span>\n<span>\n<u><b>" + (pvMax(me) - myDef.dmg) + "</b><i>PV</i></u>\n</span>\n</div>\n";
   out += '<div class="due-cont">\n<div class="due-box">\n<h>ACCIONES:</h>\n<div class="due-text">';
   out += "[b]" + ac[0].k + ":[/b] " + ac[0].v + "\n[b]" + ac[1].k + ":[/b] " + ac[1].v + "\n[b]" + ac[2].k + ":[/b] " + ac[2].v;
   out += "</div>\n</div>\n";
@@ -317,7 +345,32 @@ function updHabLib(id, i, field, val) { const pj = normalizePJ(state.pjs[id]); c
 function rmHabLib(id, i) { const pj = normalizePJ(state.pjs[id]); setLibPj(id, { hab: pj.hab.filter((_, idx) => idx !== i) }); }
 function nuevoPj() { const id = uid(); state.pjs = { ...state.pjs, [id]: blankPJ("Nuevo personaje", "#82b6c6") }; set({ editId: id, view: "personajes" }); }
 function importToLib() { const p = decode(state.importText); if (!p) { state.importMsg = "Código o BBCode no válido."; render(); return; } const id = uid(); state.pjs = { ...state.pjs, [id]: p }; set({ editId: id, importText: "", importMsg: "✓ «" + (p.nombre || "PJ") + "» añadido." }); }
-function loadInto(side, id) { set({ [side]: normalizePJ(state.pjs[id]), view: "duelo" }); }
+function loadInto(side, id) { const pj = normalizePJ(state.pjs[id]); pj.pvAct = String(pvMax(pj)); pj.ataca = true; set({ [side]: pj, view: "duelo" }); }
+
+// Lee el BBCode de un duelo (una o dos tablillas) y devuelve [{pj, pvAct}, ...].
+function parseDuelo(raw) {
+  raw = raw || "";
+  const parts = raw.split(/<div class="tablillita/i).slice(1);
+  const chunks = parts.length ? parts.map((p) => '<div class="tablillita' + p) : [raw];
+  const out = [];
+  chunks.forEach((ch) => {
+    const pj = parseBB(ch);
+    if (!pj) return;
+    const m = ch.match(/<u>\s*<b>(-?\d+)<\/b>\s*<i>\s*PV\s*<\/i>\s*<\/u>/i);
+    out.push({ pj: pj, pvAct: m ? m[1] : "" });
+  });
+  return out;
+}
+function cargarTurno() {
+  const arr = parseDuelo(state.turnoText);
+  if (!arr.length) { state.turnoMsg = "No se pudieron leer las tablillas. Pega el BBCode completo del duelo."; state.turnoOpen = true; render(); return; }
+  const A = normalizePJ(arr[0].pj); A.pvAct = arr[0].pvAct || String(pvMax(A)); A.ataca = true;
+  let B = state.B;
+  if (arr[1]) { B = normalizePJ(arr[1].pj); B.pvAct = arr[1].pvAct || String(pvMax(B)); B.ataca = true; }
+  state.A = A; state.B = B; state.turnoText = ""; state.turnoOpen = false;
+  state.turnoMsg = "✓ Turno cargado (" + arr.length + " ficha" + (arr.length > 1 ? "s" : "") + ").";
+  set({ view: "duelo" });
+}
 
 /* ============================================================
    RENDER
@@ -357,6 +410,7 @@ function header() {
         `<a class="h-goldsoft" href="index.html" style="${off}">Economía</a>` +
         `<button class="h-goldsoft" data-act="nav" data-view="duelo" style="${on}">Duelos</button>` +
         `<a class="h-goldsoft" href="datos.html" style="${off}">Datos</a>` +
+        `<a class="h-goldsoft" href="trama.html" style="${off}">Trama</a>` +
       `</nav>` +
     `</header>`
   );
@@ -386,25 +440,29 @@ function duelSideVM(side) {
     { key: "mDmg", label: "+Dñ", title: "Modificador de daño" },
     { key: "mProt", label: "+Pro", title: "Modificador de protección" },
   ].map((m) => ({ label: m.label, title: m.title, key: m.key, val: pj[m.key] }));
-  const loadOpts = [{ v: "", l: isA ? "Cargar en Tú…" : "Cargar rival…" }].concat(Object.keys(state.pjs).map((id) => ({ v: id, l: state.pjs[id].nombre || "Sin nombre" })));
-  return { side, title: isA ? "Tú" : "Rival", color: pj.color, nombre: pj.nombre, clase: pj.clase, territorio: pj.territorio, loadOpts, equipoResumen: eqResumen(pj), dAtk: pj.dAtk, dDef: pj.dDef, mods };
+  const loadOpts = [{ v: "", l: isA ? "Cargar en Tú…" : "Cargar rival…" }]
+    .concat(Object.keys(state.pjs).map((id) => ({ v: id, l: state.pjs[id].nombre || "Sin nombre" })))
+    .concat(PRESETS.map((p) => ({ v: "preset:" + p.id, l: "⚔ " + p.nombre + " (trama)" })));
+  return { side, title: isA ? "Tú" : "Rival", color: pj.color, nombre: pj.nombre, clase: pj.clase, territorio: pj.territorio, loadOpts, equipoResumen: eqResumen(pj), dAtk: pj.dAtk, dDef: pj.dDef, mods, pvAct: pj.pvAct, pvMax: pvMax(pj), ataca: pj.ataca !== false };
 }
 function dueloView() {
   const A = state.A, B = state.B;
   const cAB = crossing(A, B), cBA = crossing(B, A);
+  if (!A.ataca) { cAB.dmg = 0; cAB.hit = false; cAB.noAtaca = true; }
+  if (!B.ataca) { cBA.dmg = 0; cBA.hit = false; cBA.noAtaca = true; }
   const nameA = A.nombre || "Tú", nameB = B.nombre || "Rival";
-  const pvA = pvMax(A) - cBA.dmg, pvB = pvMax(B) - cAB.dmg;
+  const pvA = pvBase(A) - cBA.dmg, pvB = pvBase(B) - cAB.dmg;
   const estA = estadoPV(pvA), estB = estadoPV(pvB);
   const marcador = [
-    { nombre: nameA, color: A.color, dmg: cAB.dmg, recibe: cBA.dmg, pv: pvA, pvMax: pvMax(A), est: estA },
-    { nombre: nameB, color: B.color, dmg: cBA.dmg, recibe: cAB.dmg, pv: pvB, pvMax: pvMax(B), est: estB },
+    { nombre: nameA, color: A.color, dmg: cAB.dmg, recibe: cBA.dmg, pv: pvA, noAtaca: !A.ataca, est: estA },
+    { nombre: nameB, color: B.color, dmg: cBA.dmg, recibe: cAB.dmg, pv: pvB, noAtaca: !B.ataca, est: estB },
   ].map((m) => (
     `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:12px 14px;">` +
       `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="width:12px;height:12px;border-radius:2px;background:${m.color};"></span><span style="${CINZEL}letter-spacing:0.06em;font-size:14px;color:var(--text);">${esc(m.nombre)}</span></div>` +
       `<div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;">` +
-        `<span style="color:var(--muted);">Inflige <b style="${m.dmg > 0 ? "color:var(--gold);" : "color:var(--muted);"}">${m.dmg}</b></span>` +
+        `<span style="color:var(--muted);">Inflige <b style="${m.dmg > 0 ? "color:var(--gold);" : "color:var(--muted);"}">${m.dmg}</b>${m.noAtaca ? ' <span style="font-size:11px;">(no ataca)</span>' : ""}</span>` +
         `<span style="color:var(--muted);">Recibe <b style="color:var(--text);">${m.recibe}</b></span>` +
-        `<span style="color:var(--muted);">PV: <b style="${m.est.style}${CINZEL}">${m.pv}</b> / ${m.pvMax}</span>` +
+        `<span style="color:var(--muted);">PV: <b style="${m.est.style}${CINZEL}">${m.pv}</b></span>` +
         `<span style="${m.est.style}">${m.est.txt}</span>` +
       `</div></div>`
   )).join("");
@@ -424,6 +482,10 @@ function dueloView() {
           `<span style="font-style:italic;font-size:12px;color:var(--cyan);">${esc(s.clase)}</span>` +
         `</div>` +
         (s.equipoResumen ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${esc(s.equipoResumen)}</div>` : "") +
+        `<div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px;">` +
+          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">❤ PV actual</span><input class="inp" type="number" inputmode="numeric" data-act="side-pvact" data-side="${s.side}" data-fid="s${s.side}-pvact" value="${esc(s.pvAct)}" placeholder="${s.pvMax}" style="width:90px;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:7px 8px;"></label>` +
+          `<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--text);padding-bottom:8px;"><input type="checkbox" data-act="side-ataca" data-side="${s.side}" ${s.ataca ? "checked" : ""} style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;"> Ataca este turno</label>` +
+        `</div>` +
         `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">` +
           `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de ataque</span><input class="inp" type="number" inputmode="numeric" data-act="side-datk" data-side="${s.side}" data-fid="s${s.side}-datk" value="${esc(s.dAtk)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
           `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de defensa</span><input class="inp" type="number" inputmode="numeric" data-act="side-ddef" data-side="${s.side}" data-fid="s${s.side}-ddef" value="${esc(s.dDef)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
@@ -439,10 +501,11 @@ function dueloView() {
     const habs = (me.hab || []);
     const habHtml = habs.length ? `<div style="padding:0 16px 14px;"><div style="${CINZEL}letter-spacing:0.1em;text-transform:uppercase;font-size:11px;color:${me.color};margin-bottom:6px;">Habilidades</div>` +
       habs.map((h) => { const deco = h.usada ? "text-decoration:line-through;" : ""; const style = h.usada ? "color:var(--muted);text-decoration:line-through;" : "color:var(--text);"; return `<div style="font-size:12px;line-height:1.5;margin-bottom:3px;"><b style="${style}">${esc(h.nombre || "Habilidad")} (${h.usada ? "USADA" : "SIN USAR"}):</b> <span style="color:var(--muted);${deco}">${esc(h.desc || "")}</span></div>`; }).join("") + `</div>` : "";
+    const pvRestante = pvBase(me) - myDef.dmg;
     return (
       `<div style="background:#0c0c0a;border:1px solid ${me.color};border-radius:8px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);">` +
         `<div style="background:${me.color};padding:10px 16px;"><div style="${CINZEL}font-weight:700;font-size:17px;color:#0a0a0b;letter-spacing:0.04em;">${esc(me.nombre || "Nombre")}</div><div style="${CINZEL}font-style:italic;font-size:12px;color:rgba(10,10,11,0.75);">${esc(me.clase || "Clase")}</div></div>` +
-        `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid var(--line-soft);">${st}<div style="text-align:center;min-width:46px;background:rgba(199,159,0,0.08);border:1px solid ${me.color};border-radius:5px;padding:5px 8px;"><div style="${CINZEL}font-size:16px;color:${me.color};line-height:1.1;">${pvMax(me)}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">PV</div></div></div>` +
+        `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid var(--line-soft);">${st}<div style="text-align:center;min-width:46px;background:rgba(199,159,0,0.08);border:1px solid ${me.color};border-radius:5px;padding:5px 8px;"><div style="${CINZEL}font-size:16px;color:${me.color};line-height:1.1;">${pvRestante}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">PV</div></div></div>` +
         `<div style="padding:12px 16px;"><div style="${CINZEL}letter-spacing:0.1em;text-transform:uppercase;font-size:11px;color:${me.color};margin-bottom:6px;">Acciones</div>${acc}</div>` +
         habHtml +
       `</div>`
@@ -454,7 +517,15 @@ function dueloView() {
   return (
     `<section style="animation:wodfade .35s ease both;">` +
       tituloSec("Duelo") +
-      `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 20px;max-width:660px;">Carga los dos personajes de tu biblioteca (o ajústalos aquí) e introduce los resultados de los dados. La app calcula ataque, defensa, daño y PV; abajo tienes las dos tablillas enfrentadas listas para copiar al foro.</p>` +
+      `<p style="text-align:center;color:var(--muted);font-size:13px;margin:0 auto 20px;max-width:660px;">Carga los personajes desde tu biblioteca o pega las tablillas del turno anterior. Ajusta el <b style="color:var(--text);">PV actual</b> y si cada uno <b style="color:var(--text);">ataca</b> este turno, introduce los dados y la app calcula ataque, defensa, daño y PV resultante.</p>` +
+      `<details ${state.turnoOpen ? "open" : ""} style="max-width:820px;margin:0 auto 20px;background:var(--panel);border:1px solid var(--line-soft);padding:0 16px;">` +
+        `<summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:12px 0;${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--cyan);"><i class="ph ph-arrow-counter-clockwise"></i>Cargar turno anterior<span style="margin-left:auto;color:var(--muted);font-size:11px;">▾</span></summary>` +
+        `<div style="padding:0 0 14px;">` +
+          `<p style="margin:0 0 8px;font-size:12px;color:var(--muted);">Pega el <b style="color:var(--text);">BBCode de las tablillas del duelo</b> del turno anterior para recuperar nombres, stats, habilidades (con su estado usada/sin usar) y PV de ambos combatientes.</p>` +
+          `<textarea data-act="turnoInput" data-fid="turno" class="inp" placeholder="Pega aquí el BBCode del duelo…" style="width:100%;min-height:90px;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-family:ui-monospace,monospace;font-size:11px;line-height:1.5;padding:9px;resize:vertical;">${esc(state.turnoText || "")}</textarea>` +
+          `<div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><button class="h-cyanb" data-act="cargarTurno" style="cursor:pointer;${CINZEL}letter-spacing:0.08em;text-transform:uppercase;font-size:11px;color:var(--cyan);background:transparent;border:1px solid rgba(130,182,198,0.35);border-radius:4px;padding:9px 14px;">Cargar turno</button><span data-msg="turno" style="${(state.turnoMsg || "").charAt(0) === "✓" ? "color:var(--gold);" : "color:var(--danger);"}font-size:12px;">${esc(state.turnoMsg || "")}</span></div>` +
+        `</div>` +
+      `</details>` +
       `<div style="max-width:820px;margin:0 auto 26px;background:linear-gradient(180deg,var(--panel-2),#0c0c0a);border:1px solid var(--gold-dim);border-radius:8px;padding:16px 18px;box-shadow:inset 0 0 24px rgba(199,159,0,0.06);">` +
         `<div class="wod-duel-grid" style="display:grid;gap:12px;">${marcador}</div>` +
       `</div>` +
@@ -689,6 +760,7 @@ function handleClick(e) {
     case "copyBB": { const A = state.A, B = state.B; const cAB = crossing(A, B), cBA = crossing(B, A); copy("bb", '<div class="duelos">\n' + bbTablilla(A, B, cAB, cBA) + "\n" + bbTablilla(B, A, cBA, cAB) + "\n</div>"); break; }
     case "nuevoPj": nuevoPj(); break;
     case "importToLib": importToLib(); break;
+    case "cargarTurno": cargarTurno(); break;
     case "exportAll": wodExportAll(); break;
     case "lib-edit": set({ editId: id }); break;
     case "lib-usarTu": loadInto("A", id); break;
@@ -715,6 +787,8 @@ function handleInput(e) {
     case "side-datk": setSide(side, { dAtk: v }); break;
     case "side-ddef": setSide(side, { dDef: v }); break;
     case "side-mod": setSide(side, { [key]: v }); break;
+    case "side-pvact": setSide(side, { pvAct: v }); break;
+    case "turnoInput": { state.turnoText = v; state.turnoMsg = ""; state.turnoOpen = true; const m = document.querySelector('[data-msg="turno"]'); if (m) m.textContent = ""; break; }
     case "importText": { state.importText = v; state.importMsg = ""; const m = document.querySelector('[data-msg="imp"]'); if (m) m.textContent = ""; break; }
     case "ed-nombre": setLibPj(state.editId, { nombre: v }); break;
     case "ed-clase": setLibPj(state.editId, { clase: v }); break;
@@ -733,11 +807,15 @@ function handleChange(e) {
     if (file) wodImportAll(file, (res) => { if (res.ok) location.reload(); else alert(res.msg); });
     return;
   }
+  if (t.dataset.act === "side-ataca") { setSide(t.dataset.side, { ataca: t.checked }); return; }
   if (t.tagName !== "SELECT") return;
   const act = t.dataset.act, side = t.dataset.side, v = t.value;
   switch (act) {
     case "side-territorio": setSide(side, { territorio: v, color: accentColorForSide(v, state[side].color) }); break;
-    case "side-load": if (v) loadInto(side, v); break;
+    case "side-load":
+      if (v.indexOf("preset:") === 0) { const p = PRESETS.find((x) => x.id === v.slice(7)); if (p) { const pj = normalizePJ(p); pj.pvAct = String(pvMax(pj)); pj.ataca = true; set({ [side]: pj, view: "duelo" }); } }
+      else if (v) loadInto(side, v);
+      break;
     case "ed-territorio": { const pj = normalizePJ(state.pjs[state.editId]); setLibPj(state.editId, { territorio: v, color: accentColorForSide(v, pj.color) }); break; }
     case "ed-arma": setLibPj(state.editId, { armaId: v }); break;
     case "ed-armadura": setLibPj(state.editId, { armaduraId: v }); break;
