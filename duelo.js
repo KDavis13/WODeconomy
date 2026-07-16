@@ -356,6 +356,7 @@ function header() {
       `<nav style="display:flex;gap:6px;flex-wrap:wrap;">` +
         `<a class="h-goldsoft" href="index.html" style="${off}">Economía</a>` +
         `<button class="h-goldsoft" data-act="nav" data-view="duelo" style="${on}">Duelos</button>` +
+        `<a class="h-goldsoft" href="datos.html" style="${off}">Datos</a>` +
       `</nav>` +
     `</header>`
   );
@@ -688,6 +689,7 @@ function handleClick(e) {
     case "copyBB": { const A = state.A, B = state.B; const cAB = crossing(A, B), cBA = crossing(B, A); copy("bb", '<div class="duelos">\n' + bbTablilla(A, B, cAB, cBA) + "\n" + bbTablilla(B, A, cBA, cAB) + "\n</div>"); break; }
     case "nuevoPj": nuevoPj(); break;
     case "importToLib": importToLib(); break;
+    case "exportAll": wodExportAll(); break;
     case "lib-edit": set({ editId: id }); break;
     case "lib-usarTu": loadInto("A", id); break;
     case "lib-usarRival": loadInto("B", id); break;
@@ -725,7 +727,13 @@ function handleInput(e) {
 }
 function handleChange(e) {
   const t = e.target.closest("[data-act]");
-  if (!t || t.tagName !== "SELECT") return;
+  if (!t) return;
+  if (t.dataset.act === "importFile") {
+    const file = t.files && t.files[0];
+    if (file) wodImportAll(file, (res) => { if (res.ok) location.reload(); else alert(res.msg); });
+    return;
+  }
+  if (t.tagName !== "SELECT") return;
   const act = t.dataset.act, side = t.dataset.side, v = t.value;
   switch (act) {
     case "side-territorio": setSide(side, { territorio: v, color: accentColorForSide(v, state[side].color) }); break;

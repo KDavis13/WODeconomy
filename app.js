@@ -327,6 +327,7 @@ function header() {
       `<nav style="display:flex;gap:6px;flex-wrap:wrap;">` +
         `<button class="h-goldsoft" data-act="nav" data-view="micasa" style="${on}">Economía</button>` +
         `<a class="h-goldsoft" href="duelo.html" style="${off}">Duelos</a>` +
+        `<a class="h-goldsoft" href="datos.html" style="${off}">Datos</a>` +
       `</nav>` +
     `</header>`
   );
@@ -1022,6 +1023,7 @@ function handleClick(e) {
     case "incItem": onInc(t.dataset.id); break;
     case "decItem": onDec(t.dataset.id); break;
     case "clearCart": patch({ cart: {} }); break;
+    case "exportAll": wodExportAll(); break;
     case "cerrarMes": cerrarMes(); break;
     case "edit-casa": set({ activeId: t.dataset.id, view: "micasa" }); break;
     case "dup-casa": { const nid = uid(); const copia = JSON.parse(JSON.stringify(normalizeCasa(S.casas[t.dataset.id]))); copia.nombre = (copia.nombre || "Casa") + " (copia)"; state.casas = { ...S.casas, [nid]: copia }; set({ activeId: nid }); break; }
@@ -1065,7 +1067,11 @@ function handleInput(e) {
 function handleChange(e) {
   const t = e.target.closest("[data-act]");
   if (!t) return;
-  if (t.dataset.act === "selectCasa") set({ activeId: t.value });
+  if (t.dataset.act === "importFile") {
+    const file = t.files && t.files[0];
+    if (file) wodImportAll(file, (res) => { if (res.ok) location.reload(); else alert(res.msg); });
+  }
+  else if (t.dataset.act === "selectCasa") set({ activeId: t.value });
   else if (t.dataset.act === "territorio") {
     const vv = t.value;
     const col = (TERRITORIOS.find((x) => x.id === vv) || {}).color || "";

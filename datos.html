@@ -1,0 +1,119 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WODeconomy · Copia de seguridad</title>
+<meta name="description" content="Descarga o restaura todos tus datos de WODeconomy (Casas y personajes)." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<style>
+  :root {
+    --bg:#0a0a0b; --panel:#121210; --panel-2:#17160f; --gold:#c79f00; --gold-soft:#e6bd1f; --gold-dim:#7c6410;
+    --cyan:#82b6c6; --text:#ddd6c6; --muted:#8f8a7c; --line:rgba(199,159,0,0.20); --line-soft:rgba(221,214,198,0.08); --danger:#c05a4a;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(120% 80% at 50% -10%, rgba(130,182,198,0.05), transparent 55%), radial-gradient(90% 60% at 50% 120%, rgba(199,159,0,0.05), transparent 60%), var(--bg);
+    color: var(--text); font-family: "Mulish", system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  .cin { font-family: "Cinzel", serif; }
+  .frame-outer, .frame-inner { position: fixed; pointer-events: none; z-index: 5; }
+  .frame-outer { inset: 8px; border: 1px solid var(--gold-dim); opacity: 0.55; }
+  .frame-inner { inset: 12px; border: 1px solid rgba(199,159,0,0.10); }
+
+  header { position: relative; z-index: 2; display: flex; align-items: center; gap: 20px; padding: 22px clamp(24px,5vw,64px) 14px; flex-wrap: wrap; }
+  .brand span.t { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: 0.34em; font-size: 22px; color: #fff; line-height: 1; display: block; }
+  .brand span.s { font-family: "Cinzel", serif; letter-spacing: 0.42em; font-size: 11px; color: var(--cyan); text-transform: uppercase; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { cursor: pointer; font-family: "Cinzel", serif; letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px; padding: 9px 15px; border-radius: 4px; white-space: nowrap; }
+  .tab.off { color: var(--gold); border: 1px solid var(--gold-dim); background: transparent; }
+  .tab.off:hover { background: rgba(199,159,0,0.10); }
+  .tab.on { color: #0a0a0b; background: var(--gold); border: 1px solid var(--gold); }
+
+  .filigree { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; justify-content: center; padding: 0 clamp(24px,5vw,64px); }
+  .filigree .line { height: 1px; flex: 1; max-width: 420px; }
+  .filigree .l { background: linear-gradient(to right, transparent, var(--gold-dim)); }
+  .filigree .r { background: linear-gradient(to left, transparent, var(--gold-dim)); }
+  .filigree span { color: var(--gold); font-size: 14px; }
+
+  main { position: relative; z-index: 2; max-width: 720px; margin: 0 auto; padding: 26px clamp(16px,4vw,48px) 72px; }
+  h2.title { text-align: center; font-family: "Cinzel", serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; font-size: clamp(20px,3vw,26px); color: var(--gold); margin: 10px 0 18px; }
+  .card { background: linear-gradient(180deg,var(--panel-2),#0c0c0a); border: 1px solid var(--gold-dim); border-radius: 8px; padding: 22px clamp(16px,3vw,28px); box-shadow: inset 0 0 0 1px rgba(199,159,0,0.12), 0 10px 40px rgba(0,0,0,0.5); }
+  .card p { font-size: 14px; line-height: 1.7; color: var(--text); }
+  .card p.muted { color: var(--muted); font-size: 13px; }
+  .summary { background: #0d0d0c; border: 1px solid var(--line-soft); border-radius: 6px; padding: 12px 14px; font-size: 13.5px; color: var(--text); margin: 16px 0; text-align: center; }
+  .summary b { color: var(--gold); font-family: "Cinzel", serif; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0 6px; }
+  .btn { flex: 1; min-width: 200px; cursor: pointer; font-family: "Cinzel", serif; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; border-radius: 6px; padding: 14px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, border-color .15s; }
+  .btn i { font-size: 17px; }
+  .btn.gold { color: var(--gold); background: transparent; border: 1px solid var(--gold-dim); }
+  .btn.gold:hover { background: rgba(199,159,0,0.12); border-color: var(--gold); }
+  .btn.cyan { color: var(--cyan); background: transparent; border: 1px solid rgba(130,182,198,0.35); }
+  .btn.cyan:hover { background: rgba(130,182,198,0.10); border-color: var(--cyan); }
+  input[type=file] { display: none; }
+  .msg { text-align: center; font-size: 13px; min-height: 18px; margin: 12px 0 0; }
+  .warn { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 12px; color: var(--muted); margin-top: 16px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+  footer { position: relative; z-index: 2; text-align: center; padding: 0 24px 40px; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-family: "Cinzel", serif; }
+</style>
+
+<div class="frame-outer"></div>
+<div class="frame-inner"></div>
+
+<header>
+  <div class="brand" style="margin-right:auto;">
+    <span class="t">WIN&nbsp;OR&nbsp;DIE</span>
+    <span class="s">Copia de seguridad</span>
+  </div>
+  <nav>
+    <a class="tab off" href="index.html">Economía</a>
+    <a class="tab off" href="duelo.html">Duelos</a>
+    <a class="tab on" href="datos.html">Datos</a>
+  </nav>
+</header>
+
+<div class="filigree"><div class="line l"></div><span>❖</span><div class="line r"></div></div>
+
+<main>
+  <h2 class="title">Tus datos</h2>
+  <div class="card">
+    <p>Toda tu gestión —tus <b style="color:var(--gold);">Casas de economía</b> y tus <b style="color:var(--gold);">personajes de duelos</b>— se guarda <b style="color:var(--gold);">solo en este navegador</b> (almacenamiento local). No hay servidor ni cuenta.</p>
+    <p class="muted">Eso significa que puedes <b>perderla</b> si borras los datos de navegación, usas el modo incógnito, cambias de navegador o de ordenador. Para no perder nada, <b>descarga una copia</b> de vez en cuando y guárdala; podrás volver a cargarla aquí en cualquier momento y en cualquier equipo.</p>
+
+    <div class="summary" id="summary">Cargando…</div>
+
+    <div class="actions">
+      <button class="btn gold" id="btnExport"><i class="ph ph-download-simple"></i> Descargar todos mis datos</button>
+      <label class="btn cyan"><i class="ph ph-upload-simple"></i> Cargar datos desde archivo<input type="file" id="fileImport" accept="application/json,.json" /></label>
+    </div>
+
+    <p class="msg" id="msg"></p>
+    <div class="warn"><i class="ph ph-warning" style="font-size:16px;"></i> Cargar un archivo <b>sobrescribe</b> los datos actuales de este navegador.</div>
+  </div>
+</main>
+
+<footer>Win or Die · Cámara del Tesoro</footer>
+
+<script src="backup.js?v=5"></script>
+<script>
+  function refreshSummary() {
+    var casas = 0, pjs = 0;
+    try { var e = JSON.parse(localStorage.getItem("wodeconomy_v2") || "{}"); casas = Object.keys(e.casas || {}).length; } catch (x) {}
+    try { var d = JSON.parse(localStorage.getItem("wodduelo_v1") || "{}"); pjs = Object.keys(d.pjs || {}).length; } catch (x) {}
+    document.getElementById("summary").innerHTML =
+      "En este navegador tienes ahora: <b>" + casas + "</b> Casa(s) de economía y <b>" + pjs + "</b> personaje(s) de duelos.";
+  }
+  refreshSummary();
+  document.getElementById("btnExport").addEventListener("click", function () { wodExportAll(); });
+  document.getElementById("fileImport").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    var msg = document.getElementById("msg");
+    if (!f) return;
+    wodImportAll(f, function (res) {
+      if (res.ok) { msg.style.color = "var(--gold)"; msg.textContent = "✓ Datos cargados. Abre Economía o Duelos para verlos."; refreshSummary(); }
+      else { msg.style.color = "var(--danger)"; msg.textContent = "✗ " + res.msg; }
+    });
+    this.value = "";
+  });
+</script>
