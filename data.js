@@ -134,6 +134,14 @@ const CATALOGO = [
       { id: "dromon", nombre: "Dromón", cost: { dragones: 750, madera: 9, hierro: 4, piedra: 1 }, limit: 2, produces: "Capacidad: 3 unidades · máx. 2/mes" },
     ],
   },
+  {
+    categoria: "Otros",
+    items: [
+      { id: "bodalocal", nombre: "Boda local", cost: { dragones: 150, alimento: 10 }, produces: "+5 orden público", desc: "Celebración humilde, apropiada para una casa menor o una boda apresurada." },
+      { id: "granboda", nombre: "Gran boda", cost: { dragones: 300, alimento: 20 }, produces: "+10 orden público", desc: "Celebración notoria; un evento que nadie cercano debería perderse." },
+      { id: "bodareal", nombre: "Boda Real", cost: { dragones: 500, alimento: 30, hierro: 2 }, produces: "+20 orden público", desc: "Celebración opulenta, llena de excentricidades y de la que se hablará durante largo tiempo." },
+    ],
+  },
 ];
 
 // Índice rápido id -> item (con su categoría).
