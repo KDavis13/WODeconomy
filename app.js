@@ -100,6 +100,7 @@ function blankCasa(nombre) {
   const box = () => ({ base: "", mods: [] });
   return {
     nombre: nombre || "Casa sin nombre", cart: {}, mes: 1, meta: { escudo: "", lema: "", miembros: "", territorio: "", acento: "" },
+    guerra: { tropas: {}, barcos: {}, aliados: "" },
     f: {
       dragones: { base: "", dado: "", mods: [] }, op: box(),
       alimento: { base: "", granero: "", consumo: "", mods: [] },
@@ -111,12 +112,13 @@ function blankCasa(nombre) {
 function uid() { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function normalizeCasa(c) {
   if (!c) return blankCasa();
-  if (c.f) return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), f: c.f };
+  const guerra = { tropas: (c.guerra && c.guerra.tropas) || {}, barcos: (c.guerra && c.guerra.barcos) || {}, aliados: (c.guerra && c.guerra.aliados) || "" };
+  if (c.f) return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, f: c.f };
   const b = blankCasa(c.nombre);
   if (c.res) ["dragones", "alimento", "madera", "hierro", "piedra"].forEach((k) => { if (c.res[k] != null && c.res[k] !== "") b.f[k].base = c.res[k]; });
   if (c.op != null) b.f.op.base = c.op;
   if (c.stats) ["ejercito", "guarnicion", "barcos", "defensa"].forEach((k) => { if (c.stats[k] != null && c.stats[k] !== "") b.f[k].base = c.stats[k]; });
-  return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), f: b.f };
+  return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, f: b.f };
 }
 function activeCasa() { return normalizeCasa(state.casas[state.activeId]); }
 
@@ -312,8 +314,8 @@ function render() {
   const v = state.view;
   fadeCls = v !== lastView ? "wod-fade" : "";
   lastView = v;
-  const esMiCasa = v === "micasa" || !["fichas", "consejos", "reglas"].includes(v);
-  const body = v === "reglas" ? reglasView() : v === "consejos" ? consejosView() : v === "fichas" ? fichasView() : miCasaView();
+  const esMiCasa = v === "micasa" || !["fichas", "guerra", "consejos", "reglas"].includes(v);
+  const body = v === "reglas" ? reglasView() : v === "consejos" ? consejosView() : v === "guerra" ? guerraView() : v === "fichas" ? fichasView() : miCasaView();
   app.innerHTML =
     header() +
     filigree() +
@@ -348,13 +350,16 @@ function subnav() {
   const subBase = "cursor:pointer;" + CINZEL + "letter-spacing:0.1em;text-transform:uppercase;font-size:11px;padding:6px 12px;border-radius:4px;background:transparent;border:none;";
   const subOn = subBase + "color:var(--gold);border-bottom:2px solid var(--gold);";
   const subOff = subBase + "color:var(--muted);";
-  const isMi = state.view === "micasa" || !["fichas", "consejos", "reglas"].includes(state.view);
-  const tabs = [["micasa", "Mi ficha", isMi], ["fichas", "Fichas de Casa", state.view === "fichas"], ["consejos", "Consejos", state.view === "consejos"], ["reglas", "Reglas de economía", state.view === "reglas"]];
+  const isMi = state.view === "micasa" || !["fichas", "guerra", "consejos", "reglas"].includes(state.view);
+  const tabs = [["micasa", "Mi ficha", isMi], ["fichas", "Fichas de Casa", state.view === "fichas"], ["guerra", "⚔ Guerra", state.view === "guerra"], ["consejos", "Consejos", state.view === "consejos"], ["reglas", "Reglas de economía", state.view === "reglas"]];
   const casasSel = Object.keys(state.casas).map((id) => `<option value="${esc(id)}" ${id === state.activeId ? "selected" : ""}>${esc(state.casas[id].nombre || "Casa sin nombre")}</option>`).join("");
   return `<div style="position:relative;z-index:2;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:14px;">` +
     tabs.map(([v, l, act]) => `<button class="h-tolgold" data-act="nav" data-view="${v}" style="${act ? subOn : subOff}">${l}</button>`).join("") +
-    `<span style="width:1px;height:18px;background:var(--line-soft);"></span>` +
-    `<select data-act="selectCasa" class="inp" title="Cambiar de Casa" style="cursor:pointer;font-size:12px;padding:6px 8px;max-width:200px;">${casasSel}</select>` +
+    `<span style="width:1px;height:18px;background:var(--line-soft);margin:0 4px;"></span>` +
+    `<label style="display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--gold-dim);border-radius:4px;padding:5px 6px 5px 11px;" title="Elige con qué Casa estás jugando">` +
+      `<span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;">Jugando con</span>` +
+      `<select data-act="selectCasa" class="inp" style="cursor:pointer;background:#0d0d0c;border:1px solid var(--line-soft);color:var(--gold);${CINZEL}font-size:13px;letter-spacing:0.03em;padding:5px 8px;max-width:220px;">${casasSel}</select>` +
+    `</label>` +
     `</div>`;
 }
 function filigree() {
@@ -496,6 +501,202 @@ function fichasView() {
   );
 }
 
+/* ---------- Vista GUERRA (preparación para la guerra) ---------- */
+const EMOJI_REC = { dragones: "🐉", alimento: "🌾", madera: "🪵", hierro: "⚙️", piedra: "🪨" };
+function costoTxt(costo) { return RDEFS.filter((r) => costo[r.key]).map((r) => fmt(costo[r.key]) + EMOJI_REC[r.key]).join(" "); }
+// Recursos que faltan (texto) para pagar un coste dado la disponibilidad; [] si alcanza.
+function faltaPara(costo, disp) { const f = []; RDEFS.forEach((r) => { const need = costo[r.key] || 0, have = Math.floor(disp[r.key] || 0); if (need > have) f.push((need - have) + EMOJI_REC[r.key]); }); return f; }
+// Cuántas unidades de un ítem puedes pagar con los recursos disponibles.
+function maxAfford(costo, disp) { let m = Infinity; RDEFS.forEach((r) => { if (costo[r.key] > 0) m = Math.min(m, Math.floor((disp[r.key] || 0) / costo[r.key])); }); return m === Infinity ? 0 : m; }
+const TONE_COLOR = { danger: "var(--danger)", ok: "#86c06f", cyan: "var(--cyan)", gold: "var(--gold)", muted: "var(--muted)" };
+function renderTips(tips) {
+  return tips.map((h) => {
+    const btns = (h.buttons || []).map((b) => `<button class="h-gold" data-act="addItem" data-id="${esc(b.id)}" title="Añadir al carrito" style="cursor:pointer;font-size:10.5px;${CINZEL}letter-spacing:0.04em;text-transform:uppercase;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);padding:4px 9px;margin:0 5px 0 0;">+ ${esc(b.label)}</button>`).join("");
+    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line-soft);"><span style="color:${TONE_COLOR[h.tone] || "var(--gold)"};flex:0 0 auto;">◆</span><div style="flex:1;min-width:0;"><span style="font-size:13px;line-height:1.6;color:var(--text);">${h.t}</span>${btns ? `<div style="margin-top:6px;">${btns}</div>` : ""}</div></div>`;
+  }).join("");
+}
+// Consejos de compra concretos según la ficha (mantTropas = mantenimiento del ejército de campaña; 0 para la ficha normal).
+function comprasSugeridas(c, mantTropas) {
+  const F = c.F, disp = c.disp, out = [];
+  const nivel = (mods, prefijo, paso) => { let v = 0; const re = new RegExp("^\\s*" + prefijo, "i"); (mods || []).forEach((m) => { if (re.test(m.l || "")) v = Math.max(v, n(m.v)); }); return { v: v, lvl: Math.round(v / paso) }; };
+  const veredicto = (costo) => { const falta = faltaPara(costo, disp); return { ok: falta.length === 0, txt: falta.length === 0 ? `<b style="color:#86c06f;">✔ te alcanza</b>` : `te faltan <b style="color:var(--danger);">${falta.join(" ")}</b>` }; };
+  // Alimento
+  const netoAli = sumMods(F.alimento) + c.tier.alimento - n(F.alimento.consumo) - (mantTropas || 0);
+  if (netoAli < 0) {
+    const cur = nivel(F.alimento.mods, "molino", 40);
+    const next = cur.lvl < 4 ? CATALOG.find((x) => x.id === "molino" + (cur.lvl + 1)) : null;
+    if (next) { const v = veredicto(next.costo); out.push({ tone: "danger", t: `🌾 <b>Déficit de alimento −${fmt(Math.abs(netoAli))}/mes.</b> Compra <b>${esc(next.nombre)}</b> (+${(cur.lvl + 1) * 40 - cur.v} 🌾/mes) por <b>${costoTxt(next.costo)}</b> → ${v.txt}.`, buttons: v.ok ? [{ id: next.id, label: next.nombre }] : [] }); }
+    else out.push({ tone: "danger", t: `🌾 <b>Déficit de alimento −${fmt(Math.abs(netoAli))}/mes</b> con el Molino al máximo: amplía el Granero o intercambia alimento.` });
+  }
+  // Orden Público (para alcanzar Contenta, +100 🐉/mes)
+  if (c.opTotal < 61) {
+    const cur = nivel(F.op.mods, "septo", 10);
+    const next = cur.lvl < 4 ? CATALOG.find((x) => x.id === "septo" + (cur.lvl + 1)) : null;
+    if (next) { const v = veredicto(next.costo); out.push({ tone: "cyan", t: `⚖️ <b>Orden Público ${fmt(c.opTotal)}</b> (por debajo de Contenta). Compra <b>${esc(next.nombre)}</b> (+${next.efecto.op} OP) por <b>${costoTxt(next.costo)}</b> → ${v.txt}.`, buttons: v.ok ? [{ id: next.id, label: next.nombre }] : [] }); }
+  }
+  // Defensa
+  const defVal = n(F.defensa.base) + sumMods(F.defensa) + c.tier.defensa;
+  if (defVal < 50) {
+    const cur = nivel(F.defensa.mods, "muralla", 10);
+    const next = cur.lvl < 4 ? CATALOG.find((x) => x.id === "muralla" + (cur.lvl + 1)) : null;
+    if (next) { const v = veredicto(next.costo); out.push({ tone: "danger", t: `🏰 <b>Defensa baja (${fmt(defVal)}).</b> Compra <b>${esc(next.nombre)}</b> (+${next.efecto.defensa} defensa) por <b>${costoTxt(next.costo)}</b> → ${v.txt}. Añade también Puertas y Torres.`, buttons: v.ok ? [{ id: next.id, label: next.nombre }] : [] }); }
+  }
+  return out;
+}
+
+function setGuerraTropa(id, v) { const g = activeCasa().guerra; patch({ guerra: { ...g, tropas: { ...g.tropas, [id]: v }, barcos: g.barcos } }); }
+function setGuerraBarco(id, v) { const g = activeCasa().guerra; patch({ guerra: { ...g, tropas: g.tropas, barcos: { ...g.barcos, [id]: v } } }); }
+function setGuerraAliados(v) { const g = activeCasa().guerra; patch({ guerra: { ...g, aliados: v } }); }
+
+// Deriva la composición (unidades por tipo) desde la ficha: base del ejército = levas iniciales; mods = compras tipadas.
+function derivarComposicion(A) {
+  const F = A.f;
+  const tropas = {}, barcos = {};
+  GUERRA.tropas.forEach((t) => (tropas[t.id] = 0));
+  GUERRA.barcos.forEach((b) => (barcos[b.id] = 0));
+  const nm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const tipoTropa = (l) => { l = nm(l); return l.indexOf("leva") === 0 ? "leva" : l.indexOf("lancero") === 0 ? "lancero" : l.indexOf("arquero") === 0 ? "arquero" : l.indexOf("hombre") === 0 ? "hombrearmas" : l.indexOf("caballero") === 0 ? "caballeros" : null; };
+  const sold = { leva: n(F.ejercito.base), lancero: 0, arquero: 0, hombrearmas: 0, caballeros: 0 };
+  (F.ejercito.mods || []).forEach((m) => { const tp = tipoTropa(m.l); if (tp) sold[tp] += n(m.v); });
+  GUERRA.tropas.forEach((t) => (tropas[t.id] = Math.round((sold[t.id] || 0) / t.unidades)));
+  const tipoBarco = (l) => { l = nm(l); return l.indexOf("transporte") === 0 ? "transporte" : l.indexOf("galera de guerra") === 0 ? "galeraguerra" : l.indexOf("galera") === 0 ? "galera" : l.indexOf("barcoluengo") === 0 ? "barcoluengo" : l.indexOf("dromon") === 0 ? "dromon" : null; };
+  (F.barcos.mods || []).forEach((m) => { const tp = tipoBarco(m.l); if (tp) barcos[tp] += n(m.v); });
+  return { tropas, barcos };
+}
+
+function guerraView() {
+  const c = compute();
+  const A = c.A, F = c.F;
+  const gt = (A.guerra && A.guerra.tropas) || {};
+  const gb = (A.guerra && A.guerra.barcos) || {};
+  const derived = derivarComposicion(A);
+  // Valor efectivo: el manual si lo has puesto; si no, el derivado de la ficha.
+  const efTropa = (id) => (gt[id] != null && gt[id] !== "") ? n(gt[id]) : (derived.tropas[id] || 0);
+  const efBarco = (id) => (gb[id] != null && gb[id] !== "") ? n(gb[id]) : (derived.barcos[id] || 0);
+  const hayOverride = GUERRA.tropas.some((t) => gt[t.id] != null && gt[t.id] !== "") || GUERRA.barcos.some((b) => gb[b.id] != null && gb[b.id] !== "");
+
+  // ── Ejército ──
+  let vcTierra = 0, mantTotal = 0, soldados = 0, unidades = 0;
+  const tropasHtml = GUERRA.tropas.map((t) => {
+    const q = efTropa(t.id);
+    vcTierra += q * t.vc; mantTotal += q * t.mant; soldados += q * t.unidades; unidades += q;
+    return `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">` +
+      `<div style="flex:1;min-width:0;"><div style="${CINZEL}font-size:14px;color:var(--text);">${esc(t.nombre)}</div><div style="font-size:11px;color:var(--muted);">VC ${t.vc} · mant ${t.mant} 🌾 · ${t.unidades} sold.</div></div>` +
+      `<input class="inp" type="number" inputmode="numeric" min="0" data-act="g-tropa" data-id="${t.id}" data-fid="g-t-${t.id}" value="${esc(q || "")}" placeholder="0" title="Nº de unidades (bloques)" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
+      `</div>`;
+  }).join("");
+
+  // ── Flota ──
+  let cap = 0, vcNaval = 0, pvFlota = 0, barcosN = 0;
+  const barcosHtml = GUERRA.barcos.map((b) => {
+    const q = efBarco(b.id);
+    cap += q * b.capacidad; vcNaval += q * b.vc; pvFlota += q * b.pv; barcosN += q;
+    return `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">` +
+      `<div style="flex:1;min-width:0;"><div style="${CINZEL}font-size:14px;color:var(--text);">${esc(b.nombre)}${b.soloIslas ? ` <span style="font-size:10px;color:var(--cyan);">(Islas del Hierro)</span>` : ""}</div><div style="font-size:11px;color:var(--muted);">VC ${b.vc} · ${b.pv} PV · transporta ${b.capacidad} u.</div></div>` +
+      `<input class="inp" type="number" inputmode="numeric" min="0" data-act="g-barco" data-id="${b.id}" data-fid="g-b-${b.id}" value="${esc(q || "")}" placeholder="0" title="Nº de barcos" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
+      `</div>`;
+  }).join("");
+
+  // ── Alimentación del ejército ──
+  const produccion = sumMods(F.alimento) + c.tier.alimento;
+  const consumoAsent = n(F.alimento.consumo);
+  const stock = n(F.alimento.base);
+  const neto = produccion - consumoAsent - mantTotal; // balance de alimento con el ejército en pie
+  let mesesTxt, mesesColor;
+  if (mantTotal === 0) { mesesTxt = "Añade tus tropas arriba para calcular la sostenibilidad."; mesesColor = "var(--muted)"; }
+  else if (neto >= 0) { mesesTxt = "Indefinidamente — tu producción cubre el mantenimiento (margen +" + fmt(neto) + " 🌾/mes)."; mesesColor = "var(--ok, #86c06f)"; }
+  else { const meses = stock > 0 ? Math.floor(stock / Math.abs(neto)) : 0; mesesTxt = "~" + meses + " mes(es) con tu reserva (" + fmt(stock) + " 🌾) · déficit de " + fmt(Math.abs(neto)) + " 🌾/mes."; mesesColor = "var(--danger)"; }
+
+  // ── Defensa / fortificación ──
+  const defVal = n(F.defensa.base) + sumMods(F.defensa) + c.tier.defensa;
+  const defRow = GUERRA.defensas.find((d) => defVal >= d.min && defVal <= d.max);
+  const guarnicion = n(F.guarnicion.base) + sumMods(F.guarnicion);
+  const desplegables = GUERRA.frenteMax + GUERRA.retaguardiaMax;
+
+  // ── Transporte: ratio y tropas aliadas (casas costeras que mueven tropas de casas no costeras) ──
+  const disp = c.disp;
+  const aliados = n(A.guerra && A.guerra.aliados);
+  const aTransportar = unidades + aliados;
+  const ratio = aTransportar > 0 ? Math.round((cap / aTransportar) * 100) : (cap > 0 ? 100 : 0);
+  const faltanCap = Math.max(0, aTransportar - cap);
+  const transportesFaltan = Math.ceil(faltanCap / 4);
+
+  // ── Consejos ──
+  const tips = comprasSugeridas(c, mantTotal); // alimento (con mantenimiento de tropas), OP y defensa
+  if (mantTotal > 0 && neto >= 0) tips.push({ tone: "ok", t: `🌾 Tu producción sostiene al ejército de forma indefinida (margen +${fmt(neto)}/mes): puedes permitirte una campaña larga.` });
+
+  // Flota: qué barcos te dan tus recursos, con botón de añadir por tipo.
+  const flotaOpts = [], flotaBtns = [];
+  GUERRA.barcos.forEach((b) => {
+    const item = CATALOG.find((x) => x.id === b.id);
+    if (!item) return;
+    const maxN = Math.min(maxAfford(item.costo, disp), item.limit || 99);
+    if (maxN >= 1) { flotaOpts.push(`${maxN}× ${b.nombre} (${maxN * b.capacidad} u.)`); flotaBtns.push({ id: b.id, label: b.nombre }); }
+  });
+  if (faltanCap > 0) tips.push({ tone: "danger", t: `⛵ <b>Transporte insuficiente:</b> necesitas mover <b>${aTransportar}</b> unidades (${unidades} tuyas${aliados ? ` + ${aliados} aliadas` : ""}) y tu flota lleva <b>${cap}</b>. Te faltan <b>${faltanCap}</b> → construye <b>${transportesFaltan}× Transporte</b>.`, buttons: flotaBtns });
+  else if (cap === 0) tips.push({ tone: "cyan", t: `⛵ <b>No tienes flota.</b> ${flotaOpts.length ? `Con tus recursos podrías construir: <b>${flotaOpts.join(", ")}</b>.` : `Aún no te alcanza para un barco.`}`, buttons: flotaBtns });
+  else tips.push({ tone: "gold", t: `⛵ Tu flota mueve <b>${cap}</b> unidades por mar (cubre el ${ratio}% de las ${aTransportar} a transportar).${flotaOpts.length ? ` Podrías añadir: <b>${flotaOpts.join(", ")}</b>.` : ""}`, buttons: flotaBtns });
+
+  if (defVal >= 90) tips.push({ tone: "ok", t: `🏰 Defensa <b>${fmt(defVal)}</b>: fortaleza sólida (${defRow ? defRow.estructuras.length : 0} estructuras). Un asalto le costará caro al atacante.` });
+  if (unidades > desplegables) tips.push({ tone: "cyan", t: `⚔ Tienes <b>${unidades}</b> unidades pero solo <b>${desplegables}</b> despliegan (10 frente + 10 retaguardia); el resto entra como reserva.` });
+  tips.push({ tone: "muted", t: `Recuerda: mantén <b>siempre ≥200 de guarnición</b> en el asentamiento (ahora: ${fmt(guarnicion)}). Los <b>Caballeros</b> no pueden cargar en asedios.` });
+  const tipsHtml = renderTips(tips);
+
+  const stat = (label, val, sub) => `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:12px;text-align:center;"><div style="${CINZEL}font-size:24px;color:var(--gold);line-height:1.1;">${val}</div><div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${label}</div>${sub ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${sub}</div>` : ""}</div>`;
+
+  const estructurasHtml = (defRow ? defRow.estructuras : []).map((e) => `<span style="display:inline-block;font-size:11px;padding:3px 9px;border:1px solid var(--gold-dim);border-radius:0;color:var(--gold-soft);margin:2px;">${esc(e)}</span>`).join("");
+
+  return (
+    `<section class="${fadeCls}" style="max-width:1000px;margin:0 auto;">` +
+      `<h2 class="nameplate">¿Preparada para la guerra?</h2>` +
+      `<p class="hint">Tropas y barcos <b style="color:var(--gold);">tomados de la ficha</b> de la Casa <b style="color:var(--gold);">${esc(A.nombre)}</b> (ejército inicial como levas + compras por tipo). Puedes ajustar cualquier campo a mano.` +
+        (hayOverride ? ` <button class="h-cyan" data-act="g-reset" style="cursor:pointer;font-size:11px;color:var(--cyan);background:transparent;border:1px solid rgba(130,182,198,0.35);border-radius:4px;padding:3px 9px;margin-left:6px;">↺ Recalcular desde la ficha</button>` : "") +
+      `</p>` +
+
+      `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px;">` +
+        stat("VC terrestre", fmt(vcTierra), unidades + " uds · " + fmt(soldados) + " sold.") +
+        stat("VC naval", fmt(vcNaval), barcosN + " barcos") +
+        stat("Transporte", cap + " u.", "por mar") +
+        stat("Mantenimiento", fmt(mantTotal), "🌾/mes") +
+      `</div>` +
+
+      `<div class="wod-ficha-grid" style="display:grid;gap:16px;margin-bottom:16px;">` +
+        `<div style="background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:6px;padding:16px;">` +
+          `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);margin-bottom:10px;">⚔ Tu ejército</div>` +
+          `<div style="display:flex;flex-direction:column;gap:8px;">${tropasHtml}</div>` +
+          `<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:13px;"><span style="color:var(--muted);">Total</span><span style="${CINZEL}color:var(--text);">${fmt(vcTierra)} VC · ${fmt(soldados)} soldados</span></div>` +
+        `</div>` +
+        `<div style="background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--cyan);border-radius:6px;padding:16px;">` +
+          `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--cyan);margin-bottom:10px;">⛵ Tu flota <span style="color:var(--muted);text-transform:none;letter-spacing:0;">(si eres costera)</span></div>` +
+          `<div style="display:flex;flex-direction:column;gap:8px;">${barcosHtml}</div>` +
+          `<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:13px;"><span style="color:var(--muted);">Total</span><span style="${CINZEL}color:var(--text);">${cap} u. transporte · ${fmt(vcNaval)} VC</span></div>` +
+          `<label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><span style="font-size:11px;color:var(--muted);flex:1;">Unidades <b style="color:var(--cyan);">aliadas</b> a transportar <span style="opacity:0.7;">(casas no costeras)</span></span><input class="inp" type="number" inputmode="numeric" min="0" data-act="g-aliados" data-fid="g-aliados" value="${esc((A.guerra && A.guerra.aliados) || "")}" placeholder="0" style="width:66px;text-align:center;${CINZEL}font-size:15px;" /></label>` +
+          `<div style="margin-top:10px;padding:8px 10px;background:${faltanCap > 0 ? "rgba(192,90,74,0.10)" : "rgba(134,192,111,0.10)"};border:1px solid ${faltanCap > 0 ? "var(--danger)" : "rgba(134,192,111,0.5)"};border-radius:0;font-size:12.5px;color:var(--text);">` +
+            `Ratio de transporte: <b style="color:${faltanCap > 0 ? "var(--danger)" : "#86c06f"};">${ratio}%</b> — mueves <b>${cap}</b> de <b>${aTransportar}</b> unidades (${unidades} tuyas${aliados ? " + " + aliados + " aliadas" : ""}).` +
+            (faltanCap > 0 ? ` Faltan <b>${faltanCap}</b> → <b>${transportesFaltan}× Transporte</b>.` : ` <b style="color:#86c06f;">✔ cubres todo.</b>`) +
+          `</div>` +
+        `</div>` +
+      `</div>` +
+
+      `<div style="background:var(--panel);border:1px solid var(--gold-dim);border-radius:6px;padding:16px;margin-bottom:16px;">` +
+        `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);margin-bottom:6px;">🌾 ¿Cuántos meses puedes alimentar a tu ejército?</div>` +
+        `<div style="font-size:15px;color:${mesesColor};margin-bottom:8px;">${mesesTxt}</div>` +
+        `<div style="font-size:12px;color:var(--muted);line-height:1.7;">Producción de alimento: <b style="color:var(--text);">+${fmt(produccion)}</b> · Consumo del asentamiento: <b style="color:var(--text);">−${fmt(consumoAsent)}</b> · Mantenimiento de tropas: <b style="color:var(--text);">−${fmt(mantTotal)}</b> · Reserva actual: <b style="color:var(--text);">${fmt(stock)}</b></div>` +
+      `</div>` +
+
+      `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px;">` +
+        `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);margin-bottom:6px;">🏰 Defensa para un asedio · <span style="color:var(--gold-soft);">${fmt(defVal)}</span></div>` +
+        (defRow ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">En un asalto habría que tomar estas posiciones:</div><div>${estructurasHtml}</div>` : `<div style="font-size:13px;color:var(--danger);">Sin defensa: no hay fortificación que resista un asalto.</div>`) +
+      `</div>` +
+
+      `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px;">` +
+        `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);margin-bottom:6px;">💡 Consejos de preparación</div>` +
+        tipsHtml +
+      `</div>` +
+    `</section>`
+  );
+}
+
 function miCasaView() {
   const c = compute();
   const A = c.A, F = c.F;
@@ -552,7 +753,7 @@ function miCasaView() {
       fichaBody +
     `</div>`;
 
-  return `<section class="${fadeCls}">` + tablilla + hintsPanel(c) + shopAndCart(c) + `</section>`;
+  return `<section class="${fadeCls}">` + tablilla + comprasPanel(c) + hintsPanel(c) + shopAndCart(c) + `</section>`;
 }
 
 function renderBox(cfg, c) {
@@ -839,6 +1040,16 @@ function buildBBGestion(c) {
   return s;
 }
 
+/* ---------- Panel de compras recomendadas (en la ficha) ---------- */
+function comprasPanel(c) {
+  const tips = comprasSugeridas(c, 0);
+  if (!tips.length) return "";
+  return `<div style="max-width:680px;margin:0 auto 26px;background:var(--panel);border:1px solid var(--gold-dim);padding:16px 18px;">` +
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><i class="ph ph-shopping-cart-simple" style="color:var(--gold);"></i><span style="${CINZEL}letter-spacing:0.14em;text-transform:uppercase;font-size:12px;color:var(--gold);">Compras recomendadas</span></div>` +
+    renderTips(tips) +
+    `</div>`;
+}
+
 /* ---------- Pistas contextuales (según la ficha activa) ---------- */
 function hints(c) {
   const out = [];
@@ -1045,6 +1256,7 @@ function handleClick(e) {
     case "incItem": onInc(t.dataset.id); break;
     case "decItem": onDec(t.dataset.id); break;
     case "clearCart": patch({ cart: {} }); break;
+    case "g-reset": patch({ guerra: { tropas: {}, barcos: {} } }); break;
     case "exportAll": wodExportAll(); break;
     case "cerrarMes": cerrarMes(); break;
     case "edit-casa": set({ activeId: t.dataset.id, view: "micasa" }); break;
@@ -1084,6 +1296,9 @@ function handleInput(e) {
   if (act === "rename") { patch({ nombre: t.value }); }
   else if (act === "setBase") { setBase(t.dataset.key, t.value); }
   else if (act === "setDado") { setBox(t.dataset.key, { dado: t.value }); }
+  else if (act === "g-tropa") { setGuerraTropa(t.dataset.id, t.value); }
+  else if (act === "g-barco") { setGuerraBarco(t.dataset.id, t.value); }
+  else if (act === "g-aliados") { setGuerraAliados(t.value); }
   else if (act === "tablillaInput") { ui.tablillaText = t.value; ui.tablillaMsg = ""; softClearMsg("tablilla"); }
   else if (act === "importInput") { ui.importText = t.value; ui.importMsg = ""; softClearMsg("import"); }
 }
@@ -1113,7 +1328,7 @@ function init() {
   let casas = {}, activeId = "", view = "micasa";
   try {
     const raw = localStorage.getItem(LS);
-    if (raw) { const s = JSON.parse(raw); casas = s.casas || {}; activeId = s.activeId || ""; view = ["reglas", "consejos", "fichas"].includes(s.view) ? s.view : "micasa"; }
+    if (raw) { const s = JSON.parse(raw); casas = s.casas || {}; activeId = s.activeId || ""; view = ["reglas", "consejos", "fichas", "guerra"].includes(s.view) ? s.view : "micasa"; }
   } catch (e) {}
   if (!Object.keys(casas).length) {
     let old = null;

@@ -147,3 +147,37 @@ const CATALOGO = [
 // Índice rápido id -> item (con su categoría).
 const CATALOGO_INDEX = {};
 CATALOGO.forEach((cat) => cat.items.forEach((it) => (CATALOGO_INDEX[it.id] = { ...it, categoria: cat.categoria })));
+
+/* ============================================================
+   Sistema de Guerra — datos para el análisis de preparación.
+   VC = Valor de Combate. mant = alimento/mes por unidad (bloque).
+   ============================================================ */
+const GUERRA = {
+  frenteMax: 10,       // unidades máximas en línea de frente por bando
+  retaguardiaMax: 10,  // unidades máximas en retaguardia por bando
+  tropas: [
+    { id: "leva", nombre: "Leva", unidades: 200, mant: 10, vc: 20, hab: "Sin habilidad, pero en número son formidables." },
+    { id: "lancero", nombre: "Lancero", unidades: 200, mant: 12, vc: 40, hab: "Formación de picas: +40 VC vs Caballeros (les quita la carga); +10 VC vs otras tropas a pie." },
+    { id: "arquero", nombre: "Arquero", unidades: 200, mant: 12, vc: 30, hab: "Lluvia de flechas: dispara a 2-3 cuadros antes del melee. +30 VC." },
+    { id: "hombrearmas", nombre: "Hombre de armas", unidades: 200, mant: 14, vc: 50, hab: "Avance disciplinado: +10 VC (+20 VC vs Lanceros o Levas)." },
+    { id: "caballeros", nombre: "Caballeros", unidades: 100, mant: 22, vc: 100, hab: "Carga de choque: +20 VC (+40 vs Arqueros/Levas). No en asedios." },
+  ],
+  barcos: [
+    { id: "transporte", nombre: "Transporte", capacidad: 4, vc: 10, pv: 60, hab: "" },
+    { id: "galera", nombre: "Galera", capacidad: 1, vc: 30, pv: 70, hab: "Maniobra ligera: +10 VC en el primer ataque (1 vez por rival)." },
+    { id: "barcoluengo", nombre: "Barcoluengo", capacidad: 1, vc: 35, pv: 65, hab: "Embestida y asalto: +10 al abordaje 2 rondas.", soloIslas: true },
+    { id: "galeraguerra", nombre: "Galera de guerra", capacidad: 2, vc: 45, pv: 90, hab: "Espolón: +15 VC y 10 PV extra en el primer choque." },
+    { id: "dromon", nombre: "Dromón", capacidad: 3, vc: 60, pv: 120, hab: "Artillería: 20 PV directos (30 vs galeras/barcoluengos/transportes)." },
+  ],
+  // La Defensa del asentamiento determina qué estructuras hay que tomar en un asalto.
+  defensas: [
+    { min: 1, max: 29, estructuras: ["Torre del homenaje"] },
+    { min: 30, max: 49, estructuras: ["Muralla exterior", "Torre del homenaje"] },
+    { min: 50, max: 69, estructuras: ["Muralla exterior", "Puerta principal", "Torre del homenaje"] },
+    { min: 70, max: 89, estructuras: ["Muralla exterior", "Puerta principal", "Muralla interior", "Torre del homenaje"] },
+    { min: 90, max: 109, estructuras: ["Muralla exterior", "Patio exterior", "Puerta principal", "Muralla interior", "Torre del homenaje"] },
+    { min: 110, max: 129, estructuras: ["Muralla exterior", "Patio exterior", "Puerta principal", "Muralla interior", "Patio interior", "Torre del homenaje"] },
+    { min: 130, max: 149, estructuras: ["Muralla exterior", "Patio exterior", "Puerta principal", "Muralla interior", "Patio interior", "Torreón", "Torre del homenaje"] },
+    { min: 150, max: 160, estructuras: ["Muralla exterior", "Patio exterior", "Puerta principal", "Muralla interior", "Patio interior", "Torreón", "Puerta interior", "Torre del homenaje"] },
+  ],
+};
