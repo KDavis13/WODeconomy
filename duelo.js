@@ -546,7 +546,7 @@ function dueloView() {
   )).join("");
 
   const sides = [duelSideVM("A"), duelSideVM("B")].map((s) => {
-    const modsHtml = s.mods.map((m) => `<label style="display:flex;flex-direction:column;gap:3px;" title="${m.title}"><span style="font-size:9.5px;color:var(--muted);white-space:nowrap;">${m.label}</span><input class="inp" type="number" inputmode="numeric" data-act="side-mod" data-side="${s.side}" data-key="${m.key}" data-fid="s${s.side}-${m.key}" value="${esc(m.val)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:13px;padding:6px;text-align:center;"></label>`).join("");
+    const modsHtml = s.mods.map((m) => `<label style="display:flex;flex-direction:column;gap:3px;" title="${m.title}"><span style="font-size:9.5px;color:var(--muted);white-space:nowrap;">${m.label}</span><input class="inp" type="text" inputmode="numeric" data-act="side-mod" data-side="${s.side}" data-key="${m.key}" data-fid="s${s.side}-${m.key}" value="${esc(m.val)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:13px;padding:6px;text-align:center;"></label>`).join("");
     return (
       `<div style="background:var(--panel);border:1px solid var(--line);border-top:3px solid ${s.color};border-radius:6px;padding:16px;">` +
         `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">` +
@@ -561,12 +561,12 @@ function dueloView() {
         `</div>` +
         (s.equipoResumen ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${esc(s.equipoResumen)}</div>` : "") +
         `<div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px;">` +
-          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">❤ PV actual</span><input class="inp" type="number" inputmode="numeric" data-act="side-pvact" data-side="${s.side}" data-fid="s${s.side}-pvact" value="${esc(s.pvAct)}" placeholder="${s.pvMax}" style="width:90px;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:7px 8px;"></label>` +
+          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">❤ PV actual</span><input class="inp" type="text" inputmode="numeric" data-act="side-pvact" data-side="${s.side}" data-fid="s${s.side}-pvact" value="${esc(s.pvAct)}" placeholder="${s.pvMax}" style="width:90px;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:7px 8px;"></label>` +
           `<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--text);padding-bottom:8px;"><input type="checkbox" data-act="side-ataca" data-side="${s.side}" ${s.ataca ? "checked" : ""} style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;"> Ataca este turno</label>` +
         `</div>` +
         `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">` +
-          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de ataque</span><input class="inp" type="number" inputmode="numeric" data-act="side-datk" data-side="${s.side}" data-fid="s${s.side}-datk" value="${esc(s.dAtk)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
-          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de defensa</span><input class="inp" type="number" inputmode="numeric" data-act="side-ddef" data-side="${s.side}" data-fid="s${s.side}-ddef" value="${esc(s.dDef)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
+          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de ataque</span><input class="inp" type="text" inputmode="numeric" data-act="side-datk" data-side="${s.side}" data-fid="s${s.side}-datk" value="${esc(s.dAtk)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
+          `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);">🎲 Dado de defensa</span><input class="inp" type="text" inputmode="numeric" data-act="side-ddef" data-side="${s.side}" data-fid="s${s.side}-ddef" value="${esc(s.dDef)}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);font-size:14px;padding:7px 8px;"></label>` +
         `</div>` +
         `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px;">${modsHtml}</div>` +
       `</div>`
@@ -669,7 +669,7 @@ function editorHtml() {
   if (arma && arma.note) aviso = (aviso ? aviso + " " : "") + arma.note;
   const habCount = (pj.hab || []).length;
   const stats = ["fuerza", "defensa", "agilidad", "conocimiento", "carisma"].map((k) => `<div style="text-align:center;min-width:44px;background:var(--panel);border:1px solid var(--line-soft);border-radius:5px;padding:4px 7px;"><div style="${CINZEL}font-size:15px;color:var(--text);line-height:1.1;">${n(pj.attrs[k])}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;">${ATTR.find((a) => a.key === k).abbr}</div></div>`).join("");
-  const attrsHtml = ATTR.map((a) => `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);" title="${a.label}">${a.abbr}</span><input class="inp" type="number" inputmode="numeric" data-act="ed-attr" data-key="${a.key}" data-fid="ed-a-${a.key}" value="${esc(pj.attrs[a.key])}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:14px;padding:6px 8px;text-align:center;"></label>`).join("");
+  const attrsHtml = ATTR.map((a) => `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);" title="${a.label}">${a.abbr}</span><input class="inp" type="text" inputmode="numeric" data-act="ed-attr" data-key="${a.key}" data-fid="ed-a-${a.key}" value="${esc(pj.attrs[a.key])}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:14px;padding:6px 8px;text-align:center;"></label>`).join("");
   const habList = (pj.hab || []).map((h, i) => {
     const toggleStyle = h.usada ? "color:#0a0a0b;background:var(--gold);border:1px solid var(--gold);" : "color:var(--cyan);background:transparent;border:1px solid rgba(130,182,198,0.35);";
     const nameColor = h.usada ? "var(--muted)" : "var(--text)";
@@ -736,7 +736,7 @@ function buildView() {
   const rng = !!(arma && arma.ranged);
   const at = b.attrs;
   const optList = (arr, none) => [{ v: "", l: none }].concat(arr.map((a) => ({ v: a.id, l: a.nombre + " · " + (a.precio || 0) + " 🐉" })));
-  const attrsHtml = ATTR.map((a) => `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);" title="${a.label}">${a.abbr}</span><input class="inp" type="number" inputmode="numeric" data-act="b-attr" data-key="${a.key}" data-fid="b-a-${a.key}" value="${esc(at[a.key])}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:14px;padding:6px 8px;text-align:center;"></label>`).join("");
+  const attrsHtml = ATTR.map((a) => `<label style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:10.5px;color:var(--muted);" title="${a.label}">${a.abbr}</span><input class="inp" type="text" inputmode="numeric" data-act="b-attr" data-key="${a.key}" data-fid="b-a-${a.key}" value="${esc(at[a.key])}" placeholder="0" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:14px;padding:6px 8px;text-align:center;"></label>`).join("");
   const ataqueAttr = rng ? n(at.agilidad) : n(at.fuerza);
   const stats = [
     { label: rng ? "Ataque (Agilidad + equipo)" : "Ataque (Fuerza + equipo)", val: "" + (ataqueAttr + E.atk), sub: "+ dado en combate" },
@@ -857,7 +857,7 @@ function handleClick(e) {
     case "lib-usarTu": loadInto("A", id); break;
     case "lib-usarRival": loadInto("B", id); break;
     case "lib-copy": copy("bib" + id, encode(state.pjs[id])); break;
-    case "lib-del": { const pjs = { ...state.pjs }; delete pjs[id]; const rest = Object.keys(pjs); state.pjs = pjs; set({ editId: state.editId === id ? (rest[0] || "") : state.editId }); break; }
+    case "lib-del": { if (!confirm('¿Borrar el personaje «' + ((state.pjs[id] && state.pjs[id].nombre) || "sin nombre") + '»? No se puede deshacer.')) break; const pjs = { ...state.pjs }; delete pjs[id]; const rest = Object.keys(pjs); state.pjs = pjs; set({ editId: state.editId === id ? (rest[0] || "") : state.editId }); break; }
     case "ed-addcustom": addHabCustomLib(state.editId); break;
     case "ed-hab-toggle": { const pj = normalizePJ(state.pjs[state.editId]); updHabLib(state.editId, i, "usada", !pj.hab[i].usada); break; }
     case "ed-hab-remove": rmHabLib(state.editId, i); break;

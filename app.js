@@ -36,6 +36,7 @@ CATALOGO.forEach((cat) =>
       desc: it.produces + (it.desc ? " · " + it.desc : ""),
       costo: it.cost,
       limit: it.limit || 0,
+      nivel: it.nivel || 0,
       efecto: deriveEfecto(it, cat.categoria),
       familia: it.nivel ? it.nombre.split(" ")[0] : null, // 1ª palabra (Molino, Mina, Puerta…): el nivel superior sustituye al inferior
     });
@@ -181,9 +182,26 @@ function parseTablilla(html) {
           if (key === "alimento" && ln.indexOf("consumo") === 0) { if (num != null) box.consumo = String(Math.abs(num)); return; }
           if (ln === "inicial" || ln === "iniciales") { if (num != null && !box.base) box.base = String(num); return; }
           if (ln === "stat" || /^dato/i.test(valTxt) || num == null) return;
-          box.mods.push({ l: label, v: String(num) });
+          const porNivel = valTxt.match(/por\s+nivel\s+de\s+([a-záéíóúñ]+)/i);
+          box.mods.push({ l: label, v: String(num), porNivelDe: porNivel ? norm(porNivel[1]) : null });
         });
       }
+      // Bonos de territorio "+N por Nivel de X": valen N × nivel del edificio X en esta caja; 0 (y se descartan) si no se tiene el edificio.
+      const nivelEnCaja = (edificio) => {
+        let lvl = 0;
+        box.mods.forEach((m) => {
+          if (m.porNivelDe) return;
+          const parts = (m.l || "").trim().split(/\s+/);
+          if (parts[0] && norm(parts[0]) === edificio) { for (let i = parts.length - 1; i >= 0; i--) { const rn = ROMAN2NUM[parts[i].toUpperCase().replace(/[^IVX]/g, "")]; if (rn) { lvl = Math.max(lvl, rn); break; } } }
+        });
+        return lvl;
+      };
+      box.mods = box.mods.reduce((acc, m) => {
+        if (!m.porNivelDe) { acc.push({ l: m.l, v: m.v }); return acc; }
+        const lvl = nivelEnCaja(m.porNivelDe);
+        if (lvl > 0) acc.push({ l: m.l + " (×" + lvl + " nivel" + (lvl > 1 ? "es" : "") + ")", v: String(n(m.v) * lvl) });
+        return acc;
+      }, []);
       b.f[key] = box;
     });
     return { nombre, cart: {}, meta: { escudo, lema, miembros, territorio, acento }, f: b.f };
@@ -257,6 +275,23 @@ function fmt(x) { return Math.round(x).toLocaleString("es-ES"); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function sanitizeUrl(u) { return /^(https?:|data:image\/)/i.test(u || "") ? u : ""; }
 function tierFor(v) { for (const t of OP_TIERS) { if (v <= t.max) return t; } return OP_TIERS[OP_TIERS.length - 1]; }
+const ROMAN2NUM = { I: 1, II: 2, III: 3, IV: 4 };
+// Nivel más alto que la Casa ya posee de una familia de edificio (según los modificadores de la ficha).
+function nivelPoseido(familia) {
+  const A = activeCasa();
+  let lvl = 0;
+  Object.keys(A.f).forEach((k) => {
+    (A.f[k].mods || []).forEach((m) => {
+      const parts = (m.l || "").trim().split(/\s+/);
+      if (parts[0] && parts[0].toLowerCase() === familia.toLowerCase()) {
+        for (let i = parts.length - 1; i >= 0; i--) { const rn = ROMAN2NUM[parts[i].toUpperCase().replace(/[^IVX]/g, "")]; if (rn) { lvl = Math.max(lvl, rn); break; } }
+      }
+    });
+  });
+  return lvl;
+}
+// Solo el nivel inmediatamente superior al poseído es comprable (progresión). Sin niveles: siempre comprable.
+function nivelComprable(it, owned) { if (!it.familia) return true; const o = owned != null ? owned : nivelPoseido(it.familia); return it.nivel === o + 1; }
 function sumMods(box) { return (box.mods || []).reduce((a, m) => a + n(m.v), 0); }
 function chipsHtml(costo, small) {
   return RDEFS.filter((r) => costo[r.key]).map((r) =>
@@ -582,7 +617,7 @@ function guerraView() {
     vcTierra += q * t.vc; mantTotal += q * t.mant; soldados += q * t.unidades; unidades += q;
     return `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">` +
       `<div style="flex:1;min-width:0;"><div style="${CINZEL}font-size:14px;color:var(--text);">${esc(t.nombre)}</div><div style="font-size:11px;color:var(--muted);">VC ${t.vc} · mant ${t.mant} 🌾 · ${t.unidades} sold.</div></div>` +
-      `<input class="inp" type="number" inputmode="numeric" min="0" data-act="g-tropa" data-id="${t.id}" data-fid="g-t-${t.id}" value="${esc(q || "")}" placeholder="0" title="Nº de unidades (bloques)" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
+      `<input class="inp" type="text" inputmode="numeric" min="0" data-act="g-tropa" data-id="${t.id}" data-fid="g-t-${t.id}" value="${esc(q || "")}" placeholder="0" title="Nº de unidades (bloques)" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
       `</div>`;
   }).join("");
 
@@ -593,7 +628,7 @@ function guerraView() {
     cap += q * b.capacidad; vcNaval += q * b.vc; pvFlota += q * b.pv; barcosN += q;
     return `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">` +
       `<div style="flex:1;min-width:0;"><div style="${CINZEL}font-size:14px;color:var(--text);">${esc(b.nombre)}${b.soloIslas ? ` <span style="font-size:10px;color:var(--cyan);">(Islas del Hierro)</span>` : ""}</div><div style="font-size:11px;color:var(--muted);">VC ${b.vc} · ${b.pv} PV · transporta ${b.capacidad} u.</div></div>` +
-      `<input class="inp" type="number" inputmode="numeric" min="0" data-act="g-barco" data-id="${b.id}" data-fid="g-b-${b.id}" value="${esc(q || "")}" placeholder="0" title="Nº de barcos" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
+      `<input class="inp" type="text" inputmode="numeric" min="0" data-act="g-barco" data-id="${b.id}" data-fid="g-b-${b.id}" value="${esc(q || "")}" placeholder="0" title="Nº de barcos" style="width:66px;text-align:center;${CINZEL}font-size:15px;" />` +
       `</div>`;
   }).join("");
 
@@ -670,7 +705,7 @@ function guerraView() {
           `<div style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--cyan);margin-bottom:10px;">⛵ Tu flota <span style="color:var(--muted);text-transform:none;letter-spacing:0;">(si eres costera)</span></div>` +
           `<div style="display:flex;flex-direction:column;gap:8px;">${barcosHtml}</div>` +
           `<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:13px;"><span style="color:var(--muted);">Total</span><span style="${CINZEL}color:var(--text);">${cap} u. transporte · ${fmt(vcNaval)} VC</span></div>` +
-          `<label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><span style="font-size:11px;color:var(--muted);flex:1;">Unidades <b style="color:var(--cyan);">aliadas</b> a transportar <span style="opacity:0.7;">(casas no costeras)</span></span><input class="inp" type="number" inputmode="numeric" min="0" data-act="g-aliados" data-fid="g-aliados" value="${esc((A.guerra && A.guerra.aliados) || "")}" placeholder="0" style="width:66px;text-align:center;${CINZEL}font-size:15px;" /></label>` +
+          `<label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><span style="font-size:11px;color:var(--muted);flex:1;">Unidades <b style="color:var(--cyan);">aliadas</b> a transportar <span style="opacity:0.7;">(casas no costeras)</span></span><input class="inp" type="text" inputmode="numeric" min="0" data-act="g-aliados" data-fid="g-aliados" value="${esc((A.guerra && A.guerra.aliados) || "")}" placeholder="0" style="width:66px;text-align:center;${CINZEL}font-size:15px;" /></label>` +
           `<div style="margin-top:10px;padding:8px 10px;background:${faltanCap > 0 ? "rgba(192,90,74,0.10)" : "rgba(134,192,111,0.10)"};border:1px solid ${faltanCap > 0 ? "var(--danger)" : "rgba(134,192,111,0.5)"};border-radius:0;font-size:12.5px;color:var(--text);">` +
             `Ratio de transporte: <b style="color:${faltanCap > 0 ? "var(--danger)" : "#86c06f"};">${ratio}%</b> — mueves <b>${cap}</b> de <b>${aTransportar}</b> unidades (${unidades} tuyas${aliados ? " + " + aliados + " aliadas" : ""}).` +
             (faltanCap > 0 ? ` Faltan <b>${faltanCap}</b> → <b>${transportesFaltan}× Transporte</b>.` : ` <b style="color:#86c06f;">✔ cubres todo.</b>`) +
@@ -780,11 +815,11 @@ function renderBox(cfg, c) {
       `<div style="display:flex;gap:8px;margin-bottom:10px;">` +
         `<label style="flex:1;display:flex;flex-direction:column;gap:3px;">` +
           `<span style="font-size:10.5px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">Remanente</span>` +
-          `<input type="number" inputmode="numeric" placeholder="0" data-act="setBase" data-key="dragones" data-fid="base-dragones" value="${esc(box.base)}" title="Dragones que te sobraron del mes anterior" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
+          `<input type="text" inputmode="numeric" placeholder="0" data-act="setBase" data-key="dragones" data-fid="base-dragones" value="${esc(box.base)}" title="Dragones que te sobraron del mes anterior" style="width:100%;background:#0d0d0c;border:1px solid var(--line-soft);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
         `</label>` +
         `<label style="flex:1;display:flex;flex-direction:column;gap:3px;">` +
           `<span style="font-size:10.5px;color:var(--gold);letter-spacing:0.04em;text-transform:uppercase;">🎲 Tirada del mes</span>` +
-          `<input type="number" inputmode="numeric" placeholder="0" data-act="setDado" data-key="dragones" data-fid="dado-dragones" value="${esc(box.dado || "")}" title="Resultado del dado de Dragones de este mes" style="width:100%;background:#161513;border:1px solid var(--gold-dim);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
+          `<input type="text" inputmode="numeric" placeholder="0" data-act="setDado" data-key="dragones" data-fid="dado-dragones" value="${esc(box.dado || "")}" title="Resultado del dado de Dragones de este mes" style="width:100%;background:#161513;border:1px solid var(--gold-dim);border-radius:4px;color:var(--text);${CINZEL}font-size:15px;padding:8px 10px;" />` +
         `</label>` +
       `</div>`;
   }
@@ -900,14 +935,34 @@ function shopAndCart(c) {
     if (!g) { g = { cat: it.cat, items: [] }; grupos.push(g); }
     g.items.push(it);
   });
+  // Nivel poseído por familia (para "Comprado" / dependencia de progresión).
+  const ownedLvl = {};
+  CATALOG.forEach((it) => { if (it.familia && !(it.familia in ownedLvl)) ownedLvl[it.familia] = nivelPoseido(it.familia); });
+
   const gruposHtml = grupos.map((g) => {
     const items = g.items.map((it) => {
       const qty = A.cart[it.id] || 0;
-      const asequible = c.puede(it.costo);
-      const cardStyle = "display:flex;flex-direction:column;background:var(--panel);border:1px solid " + (asequible ? "var(--line-soft)" : "rgba(192,90,74,0.4)") + ";border-radius:6px;padding:14px;" + (asequible ? "" : "opacity:0.75;");
-      const addStyle = asequible
-        ? "width:100%;cursor:pointer;" + CINZEL + "letter-spacing:0.1em;font-size:12px;text-transform:uppercase;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);border-radius:4px;padding:9px 10px;"
-        : "width:100%;cursor:not-allowed;" + CINZEL + "letter-spacing:0.08em;font-size:11px;text-transform:uppercase;color:var(--danger);background:transparent;border:1px solid rgba(192,90,74,0.4);border-radius:4px;padding:9px 10px;";
+      // Bloqueo por progresión de niveles.
+      let bloqueo = null;
+      if (it.familia) {
+        const owned = ownedLvl[it.familia] || 0;
+        if (it.nivel <= owned) bloqueo = { tipo: "comprado", txt: "✔ Comprado (Nivel " + ROMAN[owned] + ")" };
+        else if (it.nivel > owned + 1) bloqueo = { tipo: "dep", txt: "🔒 Requiere Nivel " + ROMAN[it.nivel - 1] };
+      }
+      const asequible = !bloqueo && c.puede(it.costo);
+      const dim = bloqueo || !asequible;
+      const borde = bloqueo ? "var(--line-soft)" : (asequible ? "var(--line-soft)" : "rgba(192,90,74,0.4)");
+      const cardStyle = "display:flex;flex-direction:column;background:var(--panel);border:1px solid " + borde + ";border-radius:6px;padding:14px;" + (dim ? "opacity:0.6;" : "");
+      let btnHtml;
+      if (bloqueo) {
+        const col = bloqueo.tipo === "comprado" ? "#86c06f" : "var(--muted)";
+        btnHtml = `<div style="width:100%;text-align:center;${CINZEL}letter-spacing:0.06em;font-size:11px;text-transform:uppercase;color:${col};border:1px solid var(--line-soft);padding:9px 10px;">${bloqueo.txt}</div>`;
+      } else {
+        const addStyle = asequible
+          ? "width:100%;cursor:pointer;" + CINZEL + "letter-spacing:0.1em;font-size:12px;text-transform:uppercase;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);border-radius:4px;padding:9px 10px;"
+          : "width:100%;cursor:not-allowed;" + CINZEL + "letter-spacing:0.08em;font-size:11px;text-transform:uppercase;color:var(--danger);background:transparent;border:1px solid rgba(192,90,74,0.4);border-radius:4px;padding:9px 10px;";
+        btnHtml = `<button class="${asequible ? "h-gold" : ""}" data-act="addItem" data-id="${esc(it.id)}" style="${addStyle}">${asequible ? "Añadir al carruaje" : "No disponible · sin recursos"}</button>`;
+      }
       return (
         `<div class="${asequible ? "h-card" : ""}" style="${cardStyle}">` +
           `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">` +
@@ -918,7 +973,7 @@ function shopAndCart(c) {
           `<p style="margin:6px 0 10px;font-size:12px;line-height:1.5;color:var(--muted);flex:1;">${esc(it.desc)}</p>` +
           `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;min-height:18px;font-size:12.5px;color:var(--text);">${chipsHtml(it.costo, false)}</div>` +
           roiHtml(it) +
-          `<button class="${asequible ? "h-gold" : ""}" data-act="addItem" data-id="${esc(it.id)}" style="${addStyle}">${asequible ? "Añadir al carruaje" : "No disponible · sin recursos"}</button>` +
+          btnHtml +
         `</div>`
       );
     }).join("");
@@ -1214,16 +1269,20 @@ function onAdd(id) {
   const c = compute();
   const it = CATALOG.find((x) => x.id === id);
   if (!it || !c.puede(it.costo)) return;
+  if (!nivelComprable(it)) return; // respeta progresión de niveles / ya comprado
   const cur = c.A.cart[id] || 0;
-  if (it.limit && cur >= it.limit) return;
+  const lim = it.familia ? 1 : it.limit; // un edificio: solo 1 nivel por mes
+  if (lim && cur >= lim) return;
   patch({ cart: { ...c.A.cart, [id]: cur + 1 } });
 }
 function onInc(id) {
   const c = compute();
   const it = CATALOG.find((x) => x.id === id);
   if (!it || !c.puede(it.costo)) return;
+  if (!nivelComprable(it)) return;
   const cur = c.A.cart[id] || 0;
-  if (it.limit && cur >= it.limit) return;
+  const lim = it.familia ? 1 : it.limit;
+  if (lim && cur >= lim) return;
   patch({ cart: { ...c.A.cart, [id]: cur + 1 } });
 }
 function onDec(id) {
@@ -1244,6 +1303,7 @@ function handleClick(e) {
     case "nuevaCasa": { const id = uid(); state.casas = { ...S.casas, [id]: blankCasa("Casa " + (Object.keys(S.casas).length + 1)) }; set({ activeId: id }); break; }
     case "duplicarCasa": { const id = uid(); const copia = JSON.parse(JSON.stringify(activeCasa())); copia.nombre = (copia.nombre || "Casa") + " (copia)"; state.casas = { ...S.casas, [id]: copia }; set({ activeId: id }); break; }
     case "borrarCasa": {
+      if (!confirm('¿Borrar la Casa «' + (activeCasa().nombre || "sin nombre") + '»? No se puede deshacer.')) break;
       const ids = Object.keys(S.casas);
       if (ids.length <= 1) { const id = S.activeId; state.casas = { [id]: blankCasa("Mi Casa") }; set({ activeId: id }); }
       else { const casas = { ...S.casas }; delete casas[S.activeId]; state.casas = casas; set({ activeId: Object.keys(casas)[0] }); }
@@ -1263,7 +1323,9 @@ function handleClick(e) {
     case "dup-casa": { const nid = uid(); const copia = JSON.parse(JSON.stringify(normalizeCasa(S.casas[t.dataset.id]))); copia.nombre = (copia.nombre || "Casa") + " (copia)"; state.casas = { ...S.casas, [nid]: copia }; set({ activeId: nid }); break; }
     case "copy-casa": copy("fic" + t.dataset.id, encode(S.casas[t.dataset.id])); break;
     case "del-casa": {
-      const id = t.dataset.id; const ids = Object.keys(S.casas);
+      const id = t.dataset.id;
+      if (!confirm('¿Borrar la Casa «' + ((S.casas[id] && S.casas[id].nombre) || "sin nombre") + '»? No se puede deshacer.')) break;
+      const ids = Object.keys(S.casas);
       if (ids.length <= 1) { state.casas = { [id]: blankCasa("Mi Casa") }; set({ activeId: id }); }
       else { const casas = { ...S.casas }; delete casas[id]; state.casas = casas; set({ activeId: S.activeId === id ? Object.keys(casas)[0] : S.activeId }); }
       break;
