@@ -103,7 +103,7 @@ function blankCasa(nombre) {
     nombre: nombre || "Casa sin nombre", cart: {}, mes: 1, meta: { escudo: "", lema: "", miembros: "", territorio: "", acento: "" },
     guerra: { tropas: {}, barcos: {}, aliados: "" },
     f: {
-      dragones: { base: "", dado: "", mods: [] }, op: box(),
+      dragones: { base: "", dado: "", mods: [] }, op: { base: "35", mods: [] }, // OP inicial por defecto (Indiferente)
       alimento: { base: "", granero: "", consumo: "", mods: [] },
       madera: box(), hierro: box(), piedra: box(),
       ejercito: box(), guarnicion: box(), barcos: box(), defensa: box(),
@@ -328,7 +328,8 @@ function compute() {
   cartIds.forEach((id) => { const it = CATALOG.find((x) => x.id === id); if (it) RDEFS.forEach((r) => { sums[r.key] += (it.costo[r.key] || 0) * A.cart[id]; }); });
   const rest = {}; let noAsequible = false;
   RDEFS.forEach((r) => { rest[r.key] = (disp[r.key] || 0) - (sums[r.key] || 0); if (rest[r.key] < 0) noAsequible = true; });
-  const puede = (costo) => RDEFS.every((r) => (costo[r.key] || 0) <= (rest[r.key] || 0));
+  // Solo exige los recursos que el ítem realmente cuesta (un déficit en otro recurso no debe bloquear la compra).
+  const puede = (costo) => RDEFS.every((r) => !(costo[r.key] > 0) || costo[r.key] <= (rest[r.key] || 0));
   return { A, F, opTotal, tier, aliNet, aliGranero, aliDisp, disp, cartIds, sums, rest, noAsequible, puede };
 }
 
@@ -349,8 +350,8 @@ function render() {
   const v = state.view;
   fadeCls = v !== lastView ? "wod-fade" : "";
   lastView = v;
-  const esMiCasa = v === "micasa" || !["fichas", "guerra", "consejos", "reglas"].includes(v);
-  const body = v === "reglas" ? reglasView() : v === "consejos" ? consejosView() : v === "guerra" ? guerraView() : v === "fichas" ? fichasView() : miCasaView();
+  const esMiCasa = v === "micasa" || !["fichas", "guerra", "consejos", "reglas", "tutorial"].includes(v);
+  const body = v === "reglas" ? reglasView() : v === "consejos" ? consejosView() : v === "guerra" ? guerraView() : v === "fichas" ? fichasView() : v === "tutorial" ? tutorialView() : miCasaView();
   app.innerHTML =
     header() +
     filigree() +
@@ -385,8 +386,8 @@ function subnav() {
   const subBase = "cursor:pointer;" + CINZEL + "letter-spacing:0.1em;text-transform:uppercase;font-size:11px;padding:6px 12px;border-radius:4px;background:transparent;border:none;";
   const subOn = subBase + "color:var(--gold);border-bottom:2px solid var(--gold);";
   const subOff = subBase + "color:var(--muted);";
-  const isMi = state.view === "micasa" || !["fichas", "guerra", "consejos", "reglas"].includes(state.view);
-  const tabs = [["micasa", "Mi ficha", isMi], ["fichas", "Fichas de Casa", state.view === "fichas"], ["guerra", "⚔ Guerra", state.view === "guerra"], ["consejos", "Consejos", state.view === "consejos"], ["reglas", "Reglas de economía", state.view === "reglas"]];
+  const isMi = state.view === "micasa" || !["fichas", "guerra", "consejos", "reglas", "tutorial"].includes(state.view);
+  const tabs = [["micasa", "Mi ficha", isMi], ["fichas", "Fichas de Casa", state.view === "fichas"], ["guerra", "⚔ Guerra", state.view === "guerra"], ["consejos", "Consejos", state.view === "consejos"], ["reglas", "Reglas de economía", state.view === "reglas"], ["tutorial", "📖 Tutorial", state.view === "tutorial"]];
   const casasSel = Object.keys(state.casas).map((id) => `<option value="${esc(id)}" ${id === state.activeId ? "selected" : ""}>${esc(state.casas[id].nombre || "Casa sin nombre")}</option>`).join("");
   return `<div style="position:relative;z-index:2;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:14px;">` +
     tabs.map(([v, l, act]) => `<button class="h-tolgold" data-act="nav" data-view="${v}" style="${act ? subOn : subOff}">${l}</button>`).join("") +
@@ -1079,19 +1080,45 @@ function buildBBCart(c) {
 }
 function buildBBGestion(c) {
   const A = c.A, F = c.F;
+  const term = (v, label) => fmt(v) + " (" + label + ")";
+  const modTerms = (box) => (box.mods || []).filter((m) => (m.l && String(m.l).trim()) || (m.v !== "" && m.v != null)).map((m) => term(n(m.v), m.l || "mod"));
   let s = `[b]Gestión — ${A.nombre}[/b]\n`;
-  SBOX.forEach((cfg) => {
-    const box = F[cfg.key]; const base = n(box.base); const sum = sumMods(box);
-    s += `\n[b]${cfg.name}:[/b] ${fmt(base)}${sum ? " (" + (sum >= 0 ? "+" : "") + fmt(sum) + ")" : ""}`;
-    if (cfg.kind === "food") s += ` — granero ${fmt(n(box.granero))}, consumo ${fmt(n(box.consumo))}`;
-    (box.mods || []).forEach((m) => { if ((m.l && m.l.trim()) || m.v !== "") s += `\n   • ${m.l || "Mod"}: ${n(m.v) >= 0 ? "+" : ""}${fmt(n(m.v))}`; });
+
+  // Dragones: modificadores + dado + remanente [+ orden público] = total
+  const dt = modTerms(F.dragones);
+  if (n(F.dragones.dado)) dt.push(term(n(F.dragones.dado), "dado"));
+  dt.push(term(n(F.dragones.base), "remanente"));
+  if (c.tier.dragones) dt.push(term(c.tier.dragones, "orden público"));
+  s += `\n[b]Dragones:[/b] ${dt.join(" + ")} = ${fmt(c.disp.dragones)}`;
+
+  // Alimento: remanente + producción [+ orden público] = subtotal − consumo = disponible
+  const prod = modTerms(F.alimento);
+  if (c.tier.alimento) prod.push(term(c.tier.alimento, "orden público"));
+  const aliBase = n(F.alimento.base), aliCons = n(F.alimento.consumo);
+  const aliSub = aliBase + sumMods(F.alimento) + c.tier.alimento;
+  let aliLine = term(aliBase, "remanente") + (prod.length ? " + " + prod.join(" + ") : "") + " = " + fmt(aliSub);
+  if (aliCons) aliLine += " − " + fmt(aliCons) + " (consumo)";
+  aliLine += " = " + fmt(c.disp.alimento);
+  s += `\n[b]Alimento:[/b] ${aliLine}`;
+
+  // Materiales: modificadores + remanente = total
+  [["madera", "Madera"], ["hierro", "Hierro"], ["piedra", "Piedra"]].forEach(([k, nm]) => {
+    const t = modTerms(F[k]);
+    t.push(term(n(F[k].base), "remanente"));
+    s += `\n[b]${nm}:[/b] ${t.join(" + ")} = ${fmt(c.disp[k])}`;
   });
+
   if (c.cartIds.length) {
     s += `\n\n[b]Compras[/b]`;
     c.cartIds.forEach((id) => { const it = CATALOG.find((x) => x.id === id); s += `\n   • ${it.nombre} ×${A.cart[id]} — ${costoLineaTxt(it.costo, A.cart[id])}`; });
     s += `\n[b]Coste total:[/b] ` + RDEFS.filter((r) => c.sums[r.key] > 0).map((r) => `${r.label} ${fmt(c.sums[r.key])}`).join(" · ");
   }
-  s += `\n\n[b]Disponible tras compras[/b]\n` + RDEFS.map((r) => `${r.label}: ${fmt(c.rest[r.key])}`).join("\n");
+
+  s += `\n\n[b]Disponible tras compras[/b]`;
+  RDEFS.forEach((r) => {
+    const coste = c.sums[r.key] || 0;
+    s += coste > 0 ? `\n${r.label}: ${fmt(c.disp[r.key])} − ${fmt(coste)} = ${fmt(c.rest[r.key])}` : `\n${r.label}: ${fmt(c.rest[r.key])}`;
+  });
   return s;
 }
 
@@ -1192,6 +1219,33 @@ function consejosView() {
 
         `<div style="background:rgba(192,90,74,0.06);border:1px solid rgba(192,90,74,0.3);border-radius:6px;padding:14px 16px;font-size:13px;color:var(--text);line-height:1.6;"><b style="color:var(--danger);">⚠️ Cuidado:</b> reclutar tropas sube el mantenimiento de alimento, y las levas movilizadas reducen tu producción. No te lances a reclutar sin cubrir el alimento primero.</div>` +
 
+      `</div>` +
+    `</section>`
+  );
+}
+
+/* ---------- Vista Tutorial (guía de uso) ---------- */
+function tutorialView() {
+  const paso = (num, titulo, cuerpo) =>
+    `<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">` +
+      `<div style="flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;background:var(--gold);color:#0a0a0b;${CINZEL}font-weight:700;font-size:15px;border-radius:0;">${num}</div>` +
+      `<div style="flex:1;"><div style="${CINZEL}letter-spacing:0.06em;font-size:15px;color:var(--gold);margin-bottom:3px;">${titulo}</div><div style="font-size:13.5px;line-height:1.65;color:var(--text);">${cuerpo}</div></div>` +
+    `</div>`;
+  return (
+    `<section class="${fadeCls}" style="max-width:760px;margin:0 auto;">` +
+      `<h2 class="nameplate">Tutorial · cómo empezar</h2>` +
+      `<div style="background:var(--panel);border:1px solid var(--gold-dim);padding:16px 18px;margin-bottom:24px;font-size:13.5px;line-height:1.7;color:var(--text);">` +
+        `👋 <b style="color:var(--gold);">¡Bienvenido/a a la Cámara del Tesoro!</b> Esta herramienta gestiona la economía de tu Casa para el foro. Todo se guarda <b>solo en tu navegador</b> — no hay servidor ni cuentas. Empiezas <b>desde cero</b> con una Casa en blanco; rellénala o importa tu tablilla.` +
+      `</div>` +
+      paso(1, "Crea o carga tu Casa", `Ponle nombre arriba (barra <b>Ficha</b>) y elige tu <b>territorio</b>. Si ya tienes tablilla en el foro, ve a <b>Fichas de Casa → Cargar / generar por código</b> y pégala: se rellena sola. También puedes tener <b>varias Casas</b> y elegir con cuál juegas en <b>«Jugando con [Casa]»</b>.`) +
+      paso(2, "Rellena tu ficha cada mes", `En <b>Dragones</b> pon tu <b>Remanente</b> (lo que te sobró del mes pasado) y la <b>Tirada</b> del dado. El resto de recursos (Alimento, Madera…) igual: su <b>Remanente</b> + los modificadores. Los bonos de Mercado, rutas, edificios… se muestran como modificadores.`) +
+      paso(3, "Compra en la tienda", `Pulsa <b>«Añadir al carruaje»</b> en lo que quieras. La app te dice si <b>te alcanza</b>. Ojo con la progresión: solo puedes comprar el <b>siguiente nivel</b> de cada edificio (primero Nivel 1, luego 2…) y <b>1 por mes</b>; lo ya comprado sale como <b>✔ Comprado</b>.`) +
+      paso(4, "El carruaje (tu carrito)", `Abajo a la derecha ves el <b>coste total</b> y lo que te queda. Si aparecen compras que no querías (de cuando probabas), pulsa <b>«Vaciar»</b>. Copia el <b>BBCode</b> (pedido o gestión) para pegarlo en el foro.`) +
+      paso(5, "Cierra el mes", `Cuando tengas tus compras, pulsa <b>«Aplicar compras · cerrar mes»</b>: descuenta el coste, guarda el <b>remanente</b> como base del mes siguiente y añade cada compra como <b>producción recurrente</b> en tu ficha. Avanza el mes.`) +
+      paso(6, "Consejos y Guerra", `En <b>Consejos</b> tienes tips de compra rentables. En <b>⚔ Guerra</b> ves tu preparación (tropas, cuántos meses aguantas de alimento, transporte por mar, defensa) con recomendaciones concretas.`) +
+      paso(7, "Copia de seguridad", `En el menú de arriba, <b>Datos</b> te deja <b>descargar un JSON</b> con todo (Casas y personajes de duelos) y volver a cargarlo en otro equipo. Hazlo de vez en cuando para no perder nada.`) +
+      `<div style="text-align:center;margin-top:22px;">` +
+        `<button class="h-gold" data-act="nav" data-view="micasa" style="cursor:pointer;${CINZEL}letter-spacing:0.1em;text-transform:uppercase;font-size:12px;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);padding:12px 22px;">Empezar con mi Casa →</button>` +
       `</div>` +
     `</section>`
   );
@@ -1387,11 +1441,13 @@ function softClearMsg(which) {
    INIT
    ============================================================ */
 function init() {
-  let casas = {}, activeId = "", view = "micasa";
+  let casas = {}, activeId = "", view = "micasa", firstRun = false;
   try {
     const raw = localStorage.getItem(LS);
-    if (raw) { const s = JSON.parse(raw); casas = s.casas || {}; activeId = s.activeId || ""; view = ["reglas", "consejos", "fichas", "guerra"].includes(s.view) ? s.view : "micasa"; }
-  } catch (e) {}
+    if (raw) { const s = JSON.parse(raw); casas = s.casas || {}; activeId = s.activeId || ""; view = ["reglas", "consejos", "fichas", "guerra", "tutorial"].includes(s.view) ? s.view : "micasa"; }
+    else firstRun = true;
+  } catch (e) { firstRun = true; }
+  if (firstRun) view = "tutorial"; // primera visita: abrir el tutorial
   if (!Object.keys(casas).length) {
     let old = null;
     try { const o = localStorage.getItem("wodeconomy"); if (o) old = JSON.parse(o); } catch (e) {}
