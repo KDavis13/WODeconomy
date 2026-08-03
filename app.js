@@ -102,6 +102,8 @@ function blankCasa(nombre) {
   return {
     nombre: nombre || "Casa sin nombre", cart: {}, mes: 1, meta: { escudo: "", lema: "", miembros: "", territorio: "", acento: "" },
     guerra: { tropas: {}, barcos: {}, aliados: "" },
+    rutas: [{ casa: "" }, { casa: "" }], // 2 rutas comerciales gratis (+100 dragones c/u)
+    intercambios: [],
     f: {
       dragones: { base: "", dado: "", mods: [] }, op: { base: "35", mods: [] }, // OP inicial por defecto (Indiferente)
       alimento: { base: "", granero: "", consumo: "", mods: [] },
@@ -114,18 +116,21 @@ function uid() { return "c" + Date.now().toString(36) + Math.random().toString(3
 function normalizeCasa(c) {
   if (!c) return blankCasa();
   const guerra = { tropas: (c.guerra && c.guerra.tropas) || {}, barcos: (c.guerra && c.guerra.barcos) || {}, aliados: (c.guerra && c.guerra.aliados) || "" };
-  if (c.f) return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, f: c.f };
+  // rutas/intercambios: si la Casa es antigua (sin el campo) se dejan vacíos para no inventar bonos.
+  const rutas = Array.isArray(c.rutas) ? c.rutas.map((r) => ({ casa: (r && r.casa) || "" })) : [];
+  const intercambios = Array.isArray(c.intercambios) ? c.intercambios.map((x) => ({ casa: (x && x.casa) || "", doy: (x && x.doy) || {}, recibo: (x && x.recibo) || {} })) : [];
+  if (c.f) return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, rutas: rutas, intercambios: intercambios, f: c.f };
   const b = blankCasa(c.nombre);
   if (c.res) ["dragones", "alimento", "madera", "hierro", "piedra"].forEach((k) => { if (c.res[k] != null && c.res[k] !== "") b.f[k].base = c.res[k]; });
   if (c.op != null) b.f.op.base = c.op;
   if (c.stats) ["ejercito", "guarnicion", "barcos", "defensa"].forEach((k) => { if (c.stats[k] != null && c.stats[k] !== "") b.f[k].base = c.stats[k]; });
-  return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, f: b.f };
+  return { nombre: c.nombre || "Mi Casa", cart: c.cart || {}, mes: c.mes || 1, meta: metaFull(c.meta), guerra: guerra, rutas: rutas, intercambios: intercambios, f: b.f };
 }
 function activeCasa() { return normalizeCasa(state.casas[state.activeId]); }
 
 function encode(casa) {
   const c = normalizeCasa(casa);
-  try { return "WODE1:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, nombre: c.nombre, cart: c.cart, mes: c.mes, meta: c.meta, f: c.f })))); }
+  try { return "WODE1:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, nombre: c.nombre, cart: c.cart, mes: c.mes, meta: c.meta, guerra: c.guerra, rutas: c.rutas, intercambios: c.intercambios, f: c.f })))); }
   catch (e) { return ""; }
 }
 function decode(code) {
@@ -134,7 +139,7 @@ function decode(code) {
     if (s.indexOf("WODE1:") === 0) s = s.slice(6);
     const json = s.charAt(0) === "{" ? s : decodeURIComponent(escape(atob(s)));
     const p = JSON.parse(json);
-    return normalizeCasa({ nombre: p.nombre || "Casa importada", cart: p.cart, mes: p.mes, meta: p.meta, f: p.f, res: p.res, op: p.op, stats: p.stats });
+    return normalizeCasa({ nombre: p.nombre || "Casa importada", cart: p.cart, mes: p.mes, meta: p.meta, guerra: p.guerra, rutas: p.rutas, intercambios: p.intercambios, f: p.f, res: p.res, op: p.op, stats: p.stats });
   } catch (e) { return null; }
 }
 
@@ -204,7 +209,7 @@ function parseTablilla(html) {
       }, []);
       b.f[key] = box;
     });
-    return { nombre, cart: {}, meta: { escudo, lema, miembros, territorio, acento }, f: b.f };
+    return { nombre, cart: {}, meta: { escudo, lema, miembros, territorio, acento }, rutas: b.rutas, intercambios: b.intercambios, f: b.f };
   } catch (e) { return null; }
 }
 
@@ -232,7 +237,7 @@ function setBase(key, val) { setBox(key, { base: val }); }
 function cerrarMes() {
   const c = compute();
   const A = c.A;
-  if (!c.cartIds.length) return;
+  if (!c.cartIds.length && !(A.intercambios || []).length && !c.rutasProxMes) return;
   const f = JSON.parse(JSON.stringify(A.f));
   const ensure = (k) => { if (!f[k]) f[k] = { base: "", mods: [] }; if (!f[k].mods) f[k].mods = []; return f[k]; };
   ["madera", "hierro", "piedra"].forEach((k) => { ensure(k).base = String(Math.round(c.rest[k] || 0)); });
@@ -262,11 +267,12 @@ function cerrarMes() {
     });
   });
   // Los dragones también arrastran remanente: lo que sobra pasa a ser la base del próximo mes y se resetea la tirada.
-  if (f.dragones) { f.dragones.base = String(Math.round(c.rest.dragones || 0)); f.dragones.dado = ""; }
+  // Dragones: remanente + ingreso de rutas comerciales (se cobra en el mes siguiente).
+  if (f.dragones) { f.dragones.base = String(Math.round(c.rest.dragones || 0) + c.rutasProxMes); f.dragones.dado = ""; }
   ui.mesAplicado = true;
   clearTimeout(mesTimer);
   mesTimer = setTimeout(() => { ui.mesAplicado = false; render(); }, 2600);
-  patch({ f, cart: {}, mes: (A.mes || 1) + 1 });
+  patch({ f, cart: {}, intercambios: [], mes: (A.mes || 1) + 1 }); // los intercambios son mensuales: se vacían al cerrar mes
 }
 
 /* ---------- Utilidades ---------- */
@@ -316,12 +322,17 @@ function compute() {
   const aliNet = aliMods + tier.alimento - n(F.alimento.consumo);
   const aliGranero = n(F.alimento.granero);
   const aliDisp = n(F.alimento.base) + aliNet;
+  // Intercambios: transferencia inmediata (afecta al mes actual). Rutas: su +100 se aplica al cerrar mes (mes siguiente).
+  const interNet = { dragones: 0, alimento: 0, madera: 0, hierro: 0, piedra: 0 };
+  (A.intercambios || []).forEach((x) => { RDEFS.forEach((r) => { interNet[r.key] += n((x.recibo || {})[r.key]) - n((x.doy || {})[r.key]); }); });
+  const rutasN = (A.rutas || []).length;
+  const rutasProxMes = rutasN * RUTA_COMERCIAL_DRAGONES;
   const disp = {
-    dragones: n(F.dragones.base) + n(F.dragones.dado) + sumMods(F.dragones) + tier.dragones,
-    alimento: aliDisp,
-    madera: n(F.madera.base) + sumMods(F.madera),
-    hierro: n(F.hierro.base) + sumMods(F.hierro),
-    piedra: n(F.piedra.base) + sumMods(F.piedra),
+    dragones: n(F.dragones.base) + n(F.dragones.dado) + sumMods(F.dragones) + tier.dragones + interNet.dragones,
+    alimento: aliDisp + interNet.alimento,
+    madera: n(F.madera.base) + sumMods(F.madera) + interNet.madera,
+    hierro: n(F.hierro.base) + sumMods(F.hierro) + interNet.hierro,
+    piedra: n(F.piedra.base) + sumMods(F.piedra) + interNet.piedra,
   };
   const cartIds = Object.keys(A.cart).filter((id) => A.cart[id] > 0);
   const sums = {}; RDEFS.forEach((r) => (sums[r.key] = 0));
@@ -330,7 +341,7 @@ function compute() {
   RDEFS.forEach((r) => { rest[r.key] = (disp[r.key] || 0) - (sums[r.key] || 0); if (rest[r.key] < 0) noAsequible = true; });
   // Solo exige los recursos que el ítem realmente cuesta (un déficit en otro recurso no debe bloquear la compra).
   const puede = (costo) => RDEFS.every((r) => !(costo[r.key] > 0) || costo[r.key] <= (rest[r.key] || 0));
-  return { A, F, opTotal, tier, aliNet, aliGranero, aliDisp, disp, cartIds, sums, rest, noAsequible, puede };
+  return { A, F, opTotal, tier, aliNet, aliGranero, aliDisp, disp, cartIds, sums, rest, noAsequible, puede, interNet, rutasN, rutasProxMes };
 }
 
 /* ---------- Estilos reutilizados (inline, como en el diseño) ---------- */
@@ -584,6 +595,15 @@ function setGuerraTropa(id, v) { const g = activeCasa().guerra; patch({ guerra: 
 function setGuerraBarco(id, v) { const g = activeCasa().guerra; patch({ guerra: { ...g, tropas: g.tropas, barcos: { ...g.barcos, [id]: v } } }); }
 function setGuerraAliados(v) { const g = activeCasa().guerra; patch({ guerra: { ...g, aliados: v } }); }
 
+/* ---------- Rutas comerciales e intercambios ---------- */
+function addRuta() { patch({ rutas: [...(activeCasa().rutas || []), { casa: "" }] }); }
+function delRuta(i) { patch({ rutas: (activeCasa().rutas || []).filter((_, idx) => idx !== i) }); }
+function setRutaCasa(i, v) { patch({ rutas: (activeCasa().rutas || []).map((r, idx) => (idx === i ? { casa: v } : r)) }); }
+function addInter() { const x = activeCasa().intercambios || []; if (x.length >= 2) return; patch({ intercambios: [...x, { casa: "", doy: {}, recibo: {} }] }); }
+function delInter(i) { patch({ intercambios: (activeCasa().intercambios || []).filter((_, idx) => idx !== i) }); }
+function setInterCasa(i, v) { patch({ intercambios: (activeCasa().intercambios || []).map((x, idx) => (idx === i ? { ...x, casa: v } : x)) }); }
+function setInterVal(i, lado, res, v) { patch({ intercambios: (activeCasa().intercambios || []).map((x, idx) => (idx === i ? { ...x, [lado]: { ...(x[lado] || {}), [res]: v } } : x)) }); }
+
 // Deriva la composición (unidades por tipo) desde la ficha: base del ejército = levas iniciales; mods = compras tipadas.
 function derivarComposicion(A) {
   const F = A.f;
@@ -789,7 +809,7 @@ function miCasaView() {
       fichaBody +
     `</div>`;
 
-  return `<section class="${fadeCls}">` + tablilla + comprasPanel(c) + hintsPanel(c) + shopAndCart(c) + `</section>`;
+  return `<section class="${fadeCls}">` + tablilla + comercioPanel(c) + comprasPanel(c) + hintsPanel(c) + shopAndCart(c) + `</section>`;
 }
 
 function renderBox(cfg, c) {
@@ -996,7 +1016,14 @@ function cartAside(c) {
   const A = c.A;
   let cartInner;
   if (c.cartIds.length === 0) {
-    cartInner = `<p style="text-align:center;color:var(--muted);font-size:12.5px;padding:6px 18px 22px;font-style:italic;">El carruaje está vacío. Añade construcciones, tropas o barcos desde el catálogo.</p>`;
+    const soloComercio = (A.intercambios || []).length || c.rutasProxMes;
+    cartInner = `<p style="text-align:center;color:var(--muted);font-size:12.5px;padding:6px 18px ${soloComercio ? "14px" : "22px"};font-style:italic;">El carruaje está vacío. Añade construcciones, tropas o barcos desde el catálogo.</p>` +
+      (soloComercio
+        ? `<div style="padding:0 14px 16px;">` +
+            `<p style="margin:0 0 10px;font-size:11px;color:var(--cyan);text-align:center;line-height:1.5;">Tienes intercambios o rutas activos. Puedes cerrar el mes sin comprar: se guardará el remanente${c.rutasProxMes ? ` y se cobrarán <b>+${fmt(c.rutasProxMes)}🐉</b> de rutas` : ""} el mes que viene.</p>` +
+            `<button class="h-gold" data-act="cerrarMes" style="width:100%;cursor:pointer;${CINZEL}letter-spacing:0.08em;font-size:11px;text-transform:uppercase;color:#0a0a0b;background:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:11px;">${ui.mesAplicado ? "✓ Mes cerrado" : "Cerrar mes (solo comercio)"}</button>` +
+          `</div>`
+        : "");
   } else {
     const rows = c.cartIds.map((id) => {
       const it = CATALOG.find((x) => x.id === id);
@@ -1084,29 +1111,52 @@ function buildBBGestion(c) {
   const modTerms = (box) => (box.mods || []).filter((m) => (m.l && String(m.l).trim()) || (m.v !== "" && m.v != null)).map((m) => term(n(m.v), m.l || "mod"));
   let s = `[b]Gestión — ${A.nombre}[/b]\n`;
 
-  // Dragones: modificadores + dado + remanente [+ orden público] = total
+  const inter = c.interNet || {};
+  const interTerm = (k) => { const v = inter[k] || 0; return v ? [term(v, v > 0 ? "intercambio" : "intercambio, doy")] : []; };
+
+  // Dragones: modificadores + dado + remanente [+ orden público] [+ intercambio] = total
   const dt = modTerms(F.dragones);
   if (n(F.dragones.dado)) dt.push(term(n(F.dragones.dado), "dado"));
   dt.push(term(n(F.dragones.base), "remanente"));
   if (c.tier.dragones) dt.push(term(c.tier.dragones, "orden público"));
+  dt.push(...interTerm("dragones"));
   s += `\n[b]Dragones:[/b] ${dt.join(" + ")} = ${fmt(c.disp.dragones)}`;
 
-  // Alimento: remanente + producción [+ orden público] = subtotal − consumo = disponible
+  // Alimento: remanente + producción [+ orden público] = subtotal − consumo [+ intercambio] = disponible
   const prod = modTerms(F.alimento);
   if (c.tier.alimento) prod.push(term(c.tier.alimento, "orden público"));
   const aliBase = n(F.alimento.base), aliCons = n(F.alimento.consumo);
   const aliSub = aliBase + sumMods(F.alimento) + c.tier.alimento;
   let aliLine = term(aliBase, "remanente") + (prod.length ? " + " + prod.join(" + ") : "") + " = " + fmt(aliSub);
   if (aliCons) aliLine += " − " + fmt(aliCons) + " (consumo)";
+  if (inter.alimento) aliLine += " + " + interTerm("alimento").join("");
   aliLine += " = " + fmt(c.disp.alimento);
   s += `\n[b]Alimento:[/b] ${aliLine}`;
 
-  // Materiales: modificadores + remanente = total
+  // Materiales: modificadores + remanente [+ intercambio] = total
   [["madera", "Madera"], ["hierro", "Hierro"], ["piedra", "Piedra"]].forEach(([k, nm]) => {
     const t = modTerms(F[k]);
     t.push(term(n(F[k].base), "remanente"));
+    t.push(...interTerm(k));
     s += `\n[b]${nm}:[/b] ${t.join(" + ")} = ${fmt(c.disp[k])}`;
   });
+
+  // Intercambios del mes
+  const ints = (A.intercambios || []).filter((x) => (x.casa && x.casa.trim()) || RDEFS.some((r) => n((x.doy || {})[r.key]) || n((x.recibo || {})[r.key])));
+  if (ints.length) {
+    s += `\n\n[b]Intercambios[/b]`;
+    ints.forEach((x) => {
+      const doy = RDEFS.filter((r) => n((x.doy || {})[r.key])).map((r) => `${fmt(n(x.doy[r.key]))} ${r.label}`).join(", ") || "nada";
+      const rec = RDEFS.filter((r) => n((x.recibo || {})[r.key])).map((r) => `${fmt(n(x.recibo[r.key]))} ${r.label}`).join(", ") || "nada";
+      s += `\n   • Con ${x.casa || "—"}: doy [${doy}] → recibo [${rec}]`;
+    });
+  }
+
+  // Rutas comerciales (efecto el mes siguiente)
+  const rutas = (A.rutas || []).filter((r) => r.casa && r.casa.trim());
+  if (c.rutasN) {
+    s += `\n\n[b]Rutas comerciales:[/b] ${c.rutasN}${rutas.length ? " (" + rutas.map((r) => r.casa).join(", ") + ")" : ""} → +${fmt(c.rutasProxMes)} dragones el próximo mes`;
+  }
 
   if (c.cartIds.length) {
     s += `\n\n[b]Compras[/b]`;
@@ -1130,6 +1180,39 @@ function comprasPanel(c) {
     `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><i class="ph ph-shopping-cart-simple" style="color:var(--gold);"></i><span style="${CINZEL}letter-spacing:0.14em;text-transform:uppercase;font-size:12px;color:var(--gold);">Compras recomendadas</span></div>` +
     renderTips(tips) +
     `</div>`;
+}
+
+/* ---------- Panel de comercio: rutas comerciales e intercambios ---------- */
+function comercioPanel(c) {
+  const A = c.A;
+  const rutas = A.rutas || [], inter = A.intercambios || [];
+
+  const rutasHtml = rutas.length
+    ? rutas.map((r, i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-soft);"><span style="${CINZEL}font-size:12px;color:var(--gold);white-space:nowrap;">+100 🐉</span><input class="inp" type="text" data-act="ruta-casa" data-i="${i}" data-fid="ruta-${i}" value="${esc(r.casa)}" placeholder="¿Con qué Casa aliada?" style="flex:1;min-width:0;font-size:12.5px;padding:6px 8px;" /><button class="h-danger" data-act="ruta-del" data-i="${i}" title="Quitar ruta" style="cursor:pointer;width:26px;height:26px;color:var(--muted);background:transparent;border:1px solid var(--line-soft);">×</button></div>`).join("")
+    : `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:4px 0;">Sin rutas comerciales.</p>`;
+
+  const resRow = (i, lado, obj) => RDEFS.map((r) => `<label style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;"><span style="font-size:12px;">${EMOJI_REC[r.key]}</span><input class="inp" type="text" inputmode="numeric" data-act="inter-val" data-i="${i}" data-lado="${lado}" data-res="${r.key}" data-fid="int-${i}-${lado}-${r.key}" value="${esc((obj || {})[r.key] || "")}" placeholder="0" style="width:100%;text-align:center;font-size:12px;padding:4px 2px;" /></label>`).join("");
+  const interHtml = inter.map((x, i) =>
+    `<div style="background:#0d0d0c;border:1px solid var(--line-soft);border-radius:6px;padding:10px 12px;margin-bottom:8px;">` +
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:11px;color:var(--muted);white-space:nowrap;">Con la Casa</span><input class="inp" type="text" data-act="inter-casa" data-i="${i}" data-fid="int-${i}-casa" value="${esc(x.casa)}" placeholder="Casa" style="flex:1;min-width:0;font-size:12.5px;padding:6px 8px;" /><button class="h-danger" data-act="inter-del" data-i="${i}" title="Quitar" style="cursor:pointer;width:26px;height:26px;color:var(--muted);background:transparent;border:1px solid var(--line-soft);">×</button></div>` +
+      `<div style="font-size:10px;color:var(--danger);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">➖ Doy</div><div style="display:flex;gap:6px;margin-bottom:8px;">${resRow(i, "doy", x.doy)}</div>` +
+      `<div style="font-size:10px;color:#86c06f;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">➕ Recibo</div><div style="display:flex;gap:6px;">${resRow(i, "recibo", x.recibo)}</div>` +
+    `</div>`).join("");
+
+  return `<div style="max-width:680px;margin:0 auto 26px;display:grid;grid-template-columns:1fr;gap:16px;">` +
+    `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;">` +
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;"><span style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);">🤝 Rutas comerciales (${rutas.length})</span><span style="font-size:11px;color:var(--cyan);">+${fmt(c.rutasProxMes)} 🐉 el próximo mes</span></div>` +
+      `<p style="margin:0 0 6px;font-size:11px;color:var(--muted);">Cada ruta activa da +100 dragones, que se cobran en la <b>tirada del mes siguiente</b>. Empiezas con 2 gratis (de esas 2, solo 1 con Casa de tu mismo reino). Más huecos con Caravana/Muelle.</p>` +
+      rutasHtml +
+      `<button class="h-gold" data-act="ruta-add" style="cursor:pointer;margin-top:8px;font-size:11px;${CINZEL}letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);padding:7px 12px;">+ Añadir ruta</button>` +
+    `</div>` +
+    `<div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;">` +
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;"><span style="${CINZEL}letter-spacing:0.12em;text-transform:uppercase;font-size:12px;color:var(--gold);">🔄 Intercambios (${inter.length}/2)</span><span style="font-size:11px;color:var(--muted);">afectan a este mes</span></div>` +
+      `<p style="margin:0 0 8px;font-size:11px;color:var(--muted);">Máx. 2 al mes. Lo que <b style="color:var(--danger);">das</b> se resta y lo que <b style="color:#86c06f;">recibes</b> se suma a tus recursos de este mes (no hace falta ruta abierta).</p>` +
+      (interHtml || `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:4px 0;">Sin intercambios.</p>`) +
+      (inter.length < 2 ? `<button class="h-gold" data-act="inter-add" style="cursor:pointer;margin-top:4px;font-size:11px;${CINZEL}letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);background:transparent;border:1px solid var(--gold-dim);padding:7px 12px;">+ Añadir intercambio</button>` : "") +
+    `</div>` +
+  `</div>`;
 }
 
 /* ---------- Pistas contextuales (según la ficha activa) ---------- */
@@ -1371,6 +1454,10 @@ function handleClick(e) {
     case "decItem": onDec(t.dataset.id); break;
     case "clearCart": patch({ cart: {} }); break;
     case "g-reset": patch({ guerra: { tropas: {}, barcos: {} } }); break;
+    case "ruta-add": addRuta(); break;
+    case "ruta-del": delRuta(+t.dataset.i); break;
+    case "inter-add": addInter(); break;
+    case "inter-del": delInter(+t.dataset.i); break;
     case "exportAll": wodExportAll(); break;
     case "cerrarMes": cerrarMes(); break;
     case "edit-casa": set({ activeId: t.dataset.id, view: "micasa" }); break;
@@ -1415,6 +1502,9 @@ function handleInput(e) {
   else if (act === "g-tropa") { setGuerraTropa(t.dataset.id, t.value); }
   else if (act === "g-barco") { setGuerraBarco(t.dataset.id, t.value); }
   else if (act === "g-aliados") { setGuerraAliados(t.value); }
+  else if (act === "ruta-casa") { setRutaCasa(+t.dataset.i, t.value); }
+  else if (act === "inter-casa") { setInterCasa(+t.dataset.i, t.value); }
+  else if (act === "inter-val") { setInterVal(+t.dataset.i, t.dataset.lado, t.dataset.res, t.value); }
   else if (act === "tablillaInput") { ui.tablillaText = t.value; ui.tablillaMsg = ""; softClearMsg("tablilla"); }
   else if (act === "importInput") { ui.importText = t.value; ui.importMsg = ""; softClearMsg("import"); }
 }
