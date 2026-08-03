@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Build · Garth Tyrell — WODeconomy</title>
+<meta name="description" content="Plan de evolución de Garth Tyrell: guerrero o estratega, con costes en dragones y hitos por atributo." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<style>
+  :root {
+    --bg: #0a0c08;
+    --panel: #11140d;
+    --panel2: #171b0f;
+    --ink: #e9e5d7;
+    --muted: #98a187;
+    --gold: #c79f00;
+    --gold-soft: #e2c860;
+    --green: #86bd5c;
+    --green-deep: #4f7135;
+    --cyan: #82b6c6;
+    --danger: #cd6853;
+    --line: rgba(124,174,86,0.16);
+    --line-soft: rgba(124,174,86,0.09);
+    --display: 'Cinzel', Georgia, serif;
+    --body: 'Mulish', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body {
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+
+  /* Barra superior */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px clamp(16px, 5vw, 40px);
+    background: rgba(10,12,8,0.86); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .topbar a { color: var(--muted); text-decoration: none; padding: 6px 2px; border-bottom: 1px solid transparent; transition: color .15s, border-color .15s; }
+  .topbar a:hover, .topbar a:focus-visible { color: var(--gold); border-color: var(--gold-dim, var(--green-deep)); outline: none; }
+  .topbar .home { color: var(--green); font-family: var(--display); letter-spacing: 0.18em; }
+  .topbar .sep { flex: 1; }
+  .topbar .here { color: var(--ink); }
+
+  .wrap {
+    background: radial-gradient(120% 80% at 50% -10%, rgba(79,113,53,0.10), transparent 60%);
+    padding: clamp(20px, 5vw, 60px) clamp(16px, 5vw, 40px) 96px;
+  }
+  .page { max-width: 1080px; margin: 0 auto; }
+
+  .eyebrow { font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--green); font-weight: 600; margin: 0 0 14px; }
+  h1 {
+    font-family: var(--display); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: clamp(32px, 7vw, 58px); line-height: 1.04; margin: 0 0 18px; color: var(--ink); text-wrap: balance;
+  }
+  h1 .of { color: var(--green); display: block; font-size: 0.42em; letter-spacing: 0.16em; margin-top: 12px; }
+  .lede { max-width: 62ch; color: var(--muted); font-size: 17px; margin: 0; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .rule { height: 1px; background: linear-gradient(to right, var(--green-deep), transparent); margin: 30px 0; border: 0; }
+
+  .section-label { display: flex; align-items: baseline; gap: 14px; margin: 56px 0 22px; }
+  .section-label .n { font-family: var(--display); font-size: 13px; color: var(--gold); letter-spacing: 0.1em; font-variant-numeric: tabular-nums; }
+  .section-label h2 { font-family: var(--display); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: clamp(16px, 2.4vw, 21px); margin: 0; color: var(--ink); }
+  .section-label .bar { flex: 1; height: 1px; background: var(--line); align-self: center; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); padding: clamp(18px, 3vw, 26px); }
+
+  .ficha { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 0; overflow: hidden; }
+  @media (max-width: 720px) { .ficha { grid-template-columns: 1fr; } }
+  .ficha > div { padding: clamp(18px, 3vw, 26px); }
+  .ficha .left { border-right: 1px solid var(--line); }
+  @media (max-width: 720px) { .ficha .left { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .kicker { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin: 0 0 16px; font-weight: 600; }
+
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0 0 20px; }
+  .stat { text-align: center; background: var(--panel2); border: 1px solid var(--line-soft); padding: 12px 4px 10px; }
+  .stat .v { font-family: var(--display); font-size: 26px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stat .k { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .stat.hi { border-color: var(--green-deep); }
+  .stat.hi .v { color: var(--green); }
+  .stat.lo .v { color: var(--danger); }
+
+  .derived { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .derived .d { font-size: 13px; color: var(--muted); }
+  .derived .d b { font-family: var(--display); color: var(--gold-soft); font-size: 17px; margin-right: 3px; }
+
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; display: flex; gap: 9px; }
+  .list li:last-child { border-bottom: 0; }
+  .list .tag { flex: 0 0 auto; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; align-self: flex-start; margin-top: 1px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.fue { color: #d99a6a; border-color: rgba(217,154,106,0.3); }
+  .tag.def { color: var(--cyan); border-color: rgba(130,182,198,0.3); }
+  .tag.car { color: #b98fd0; border-color: rgba(185,143,208,0.3); }
+  .tag.con { color: var(--green); border-color: var(--green-deep); }
+  .list .txt b { color: var(--ink); font-weight: 600; }
+  .list .txt { color: var(--muted); }
+
+  .diag { margin-top: 18px; padding: 16px 18px; background: linear-gradient(180deg, rgba(124,174,86,0.06), transparent); border-left: 2px solid var(--green-deep); }
+  .diag p { margin: 0; font-size: 14px; color: var(--ink); }
+  .diag p + p { margin-top: 8px; color: var(--muted); font-size: 13.5px; }
+  .diag .plus { color: var(--green); } .diag .minus { color: var(--danger); }
+
+  .quickstart { background: linear-gradient(135deg, rgba(199,159,0,0.08), rgba(124,174,86,0.05)); border: 1px solid var(--green-deep); padding: clamp(18px,3vw,26px); display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+  @media (max-width: 640px) { .quickstart { grid-template-columns: 1fr; } }
+  .quickstart h3 { font-family: var(--display); font-size: 18px; letter-spacing: 0.05em; margin: 0 0 8px; text-transform: uppercase; }
+  .quickstart ul { margin: 10px 0 0; padding-left: 0; list-style: none; }
+  .quickstart li { font-size: 14px; padding: 5px 0; color: var(--muted); display: flex; gap: 10px; justify-content: space-between; }
+  .quickstart li b { color: var(--ink); }
+  .quickstart .cost { color: var(--gold-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .price-badge { text-align: center; padding: 18px 26px; border: 1px solid var(--gold); background: rgba(199,159,0,0.06); }
+  .price-badge .big { font-family: var(--display); font-size: 40px; color: var(--gold); line-height: 1; font-variant-numeric: tabular-nums; }
+  .price-badge .cur { color: var(--gold-soft); font-size: 15px; }
+  .price-badge .sub { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+  .free { color: var(--green); font-weight: 600; }
+
+  .paths { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 820px) { .paths { grid-template-columns: 1fr; } }
+  .path { background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+  .path header { padding: 20px 22px 18px; border-bottom: 1px solid var(--line); }
+  .path.war header { background: linear-gradient(180deg, rgba(205,104,83,0.09), transparent); }
+  .path.strat header { background: linear-gradient(180deg, rgba(130,182,198,0.09), transparent); }
+  .path .ident { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin: 0 0 6px; font-weight: 600; }
+  .path.war .ident { color: var(--danger); }
+  .path.strat .ident { color: var(--cyan); }
+  .path h3 { font-family: var(--display); font-size: clamp(20px,3vw,26px); letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 10px; color: var(--ink); }
+  .path .why { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .path .why b { color: var(--ink); }
+  .path .body { padding: 20px 22px 24px; }
+  .lever { display: flex; gap: 12px; align-items: baseline; padding: 12px 14px; background: var(--panel2); border: 1px solid var(--line-soft); margin-bottom: 20px; }
+  .lever .lk { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); flex: 0 0 auto; }
+  .lever .lv { font-size: 13.5px; color: var(--ink); }
+  .lever .lv b { color: var(--green); }
+
+  .step-h { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
+
+  .ladder { list-style: none; margin: 0; padding: 0; }
+  .ladder li { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+  .ladder li:last-child { border-bottom: 0; }
+  .thr { font-family: var(--display); font-size: 11.5px; color: var(--green); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .ladder .name { color: var(--ink); font-weight: 600; }
+  .ladder .name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.4; }
+  .ladder .c { font-size: 12.5px; color: var(--gold-soft); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  .ladder .c.free { color: var(--green); }
+  .star { color: var(--gold); }
+
+  .gear-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+  .gear-row:last-child { border-bottom: 0; }
+  .gear-row .g-name b { color: var(--ink); }
+  .gear-row .g-name small { color: var(--muted); }
+  .gear-row .g-cost { color: var(--gold-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 1px; background: linear-gradient(var(--green-deep), var(--line)); }
+  .tl { position: relative; padding: 0 0 26px; }
+  .tl:last-child { padding-bottom: 0; }
+  .tl::before { content: ""; position: absolute; left: -23px; top: 6px; width: 8px; height: 8px; background: var(--bg); border: 1px solid var(--green); transform: rotate(45deg); }
+  .tl.gold::before { border-color: var(--gold); background: var(--gold); }
+  .tl h4 { font-family: var(--display); font-size: 15px; margin: 0 0 4px; letter-spacing: 0.03em; color: var(--ink); }
+  .tl h4 span { color: var(--muted); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 8px; font-family: var(--body); }
+  .tl p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .tl p b { color: var(--ink); } .tl .g { color: var(--gold-soft); font-variant-numeric: tabular-nums; }
+
+  .ref { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .ref { grid-template-columns: 1fr; } }
+  .tbl-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  caption { text-align: left; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); padding-bottom: 10px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); }
+  th { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--gold-soft); white-space: nowrap; }
+  tbody tr:hover { background: rgba(124,174,86,0.04); }
+  td b { color: var(--ink); }
+  td small { color: var(--muted); }
+
+  .note { margin-top: 22px; padding: 18px 20px; border: 1px solid var(--line); background: var(--panel); }
+  .note h4 { font-family: var(--display); margin: 0 0 8px; font-size: 15px; letter-spacing: 0.04em; color: var(--gold-soft); }
+  .note p { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+  .note p:last-child { margin-bottom: 0; }
+  .note b { color: var(--ink); }
+  .warn { color: var(--danger); }
+
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+  /* Recuadro de reglas */
+  .rules-note { margin-top: 22px; padding: 18px 20px; background: linear-gradient(180deg, rgba(205,104,83,0.05), transparent); border: 1px solid var(--line); border-left: 2px solid var(--danger); }
+  .rules-note h4 { font-family: var(--display); margin: 0 0 12px; font-size: 15px; letter-spacing: 0.04em; color: var(--ink); }
+  .rules-note ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .rules-note li { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+  .rules-note li b { color: var(--ink); }
+  .rules-note .rk { display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--green-deep); padding: 2px 8px; margin-right: 8px; vertical-align: 1px; }
+
+  /* Escalera: posts bajo el coste */
+  .ladder .c { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+  .ladder .c small { color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+
+  /* Bloqueado */
+  .locked { margin-top: 20px; padding: 18px 20px; border: 1px dashed var(--line); background: var(--panel); }
+  .locked h4 { font-family: var(--display); margin: 0 0 8px; font-size: 15px; letter-spacing: 0.03em; color: var(--muted); }
+  .locked > p { margin: 0 0 14px; font-size: 13px; color: var(--muted); max-width: 74ch; }
+  .locked > p b { color: var(--ink); }
+  .locked-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .locked-grid { grid-template-columns: 1fr; } }
+  .locked-grid > div { font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .locked-grid small { opacity: 0.75; }
+  .lt { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+  .lt.warn { color: var(--danger); }
+
+  /* Plan de equipo */
+  .gear-plan { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .gear-plan { grid-template-columns: 1fr; } }
+  .gp { background: var(--panel2); border: 1px solid var(--line-soft); padding: 15px 16px 16px; display: flex; flex-direction: column; }
+  .gp-h { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .gp-h b { color: var(--ink); }
+  .gp-n { flex: 0 0 auto; width: 22px; height: 22px; display: grid; place-items: center; font-family: var(--display); font-size: 12px; color: var(--gold); border: 1px solid var(--green-deep); }
+  .gp .same { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green); border: 1px solid var(--green-deep); padding: 1px 6px; }
+  .gp p { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); line-height: 1.5; flex: 1; }
+  .gp-cost { font-family: var(--display); font-size: 15px; color: var(--gold-soft); font-variant-numeric: tabular-nums; }
+  .gp-cost b { color: var(--gold); }
+  .gp-cost span { font-family: var(--body); font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+
+  /* Tira de reglas compacta */
+  .rules-strip { margin-top: 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  @media (max-width: 720px) { .rules-strip { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 440px) { .rules-strip { grid-template-columns: 1fr; } }
+  .rules-strip span { background: var(--panel); padding: 12px 14px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+  .rules-strip b { color: var(--gold-soft); font-weight: 600; }
+
+  .section-intro { max-width: 76ch; color: var(--muted); font-size: 14.5px; margin: 0 0 22px; }
+  .section-intro b { color: var(--ink); }
+
+  /* Perfiles por niveles */
+  .profiles { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 820px) { .profiles { grid-template-columns: 1fr; } }
+  .profile { background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+  .profile > header { padding: 18px 20px 16px; border-bottom: 1px solid var(--line); }
+  .profile.war > header { background: linear-gradient(180deg, rgba(205,104,83,0.10), transparent); }
+  .profile.strat > header { background: linear-gradient(180deg, rgba(130,182,198,0.10), transparent); }
+  .profile .ident { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 5px; font-weight: 600; }
+  .profile.war .ident { color: var(--danger); }
+  .profile.strat .ident { color: var(--cyan); }
+  .profile h3 { font-family: var(--display); font-size: clamp(21px,3vw,26px); letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 6px; color: var(--ink); }
+  .req-line { margin: 0; font-size: 12px; color: var(--muted); }
+  .req-line b { color: var(--gold-soft); }
+
+  .tiers { display: flex; flex-direction: column; }
+  .tier { padding: 15px 20px 16px; border-top: 1px solid var(--line-soft); }
+  .tier:first-child { border-top: 0; }
+  .tier.locked-tier { background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(205,104,83,0.03) 8px, rgba(205,104,83,0.03) 16px); }
+  .tier-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .tier-name { font-family: var(--display); font-size: 15px; color: var(--ink); letter-spacing: 0.03em; display: flex; align-items: center; gap: 9px; }
+  .tier-badge { flex: 0 0 auto; width: 20px; height: 20px; display: grid; place-items: center; font-size: 11px; color: var(--bg); background: var(--gold); font-family: var(--body); font-weight: 700; }
+  .locked-tier .tier-badge { background: var(--danger); }
+  .tier-price { font-family: var(--display); font-size: 17px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tier-price small { font-size: 11.5px; color: var(--muted); font-family: var(--body); margin-left: 3px; }
+  .tier-goal { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .tier-goal b { color: var(--gold-soft); }
+  .tier-goal.warn { color: var(--danger); }
+  .tier-goal.warn b { color: var(--danger); }
+  .tier-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .tier-items li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink); }
+  .ti-tag { flex: 0 0 auto; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border: 1px solid var(--line); color: var(--muted); }
+  .ti-tag.hab { color: var(--green); border-color: var(--green-deep); }
+  .ti-tag.eq { color: var(--gold-soft); border-color: rgba(199,159,0,0.3); }
+  .ti-c { margin-left: auto; color: var(--gold-soft); font-variant-numeric: tabular-nums; font-size: 12.5px; white-space: nowrap; }
+
+  .tier-foot { max-width: 80ch; margin: 16px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+  .tier-foot b { color: var(--gold-soft); }
+
+  /* Comparativa rápida */
+  .compare { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+  .compare > div { background: var(--panel2); border: 1px solid var(--line-soft); padding: 14px 16px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .compare b { color: var(--ink); }
+  .cmp-h { display: block; font-family: var(--display); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .cmp-h.war { color: var(--danger); }
+  .cmp-h.strat { color: var(--cyan); }
+  .cmp-h.gold { color: var(--gold); }
+
+  /* Veredicto */
+  .verdict { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: stretch; background: linear-gradient(135deg, rgba(205,104,83,0.08), rgba(199,159,0,0.05)); border: 1px solid var(--green-deep); padding: clamp(18px,3vw,26px); }
+  @media (max-width: 640px) { .verdict { grid-template-columns: 1fr; } }
+  .v-main p { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+  .v-main p:last-child { margin-bottom: 0; }
+  .v-head { font-family: var(--display); font-size: 17px; color: var(--ink) !important; letter-spacing: 0.02em; }
+  .v-head b { color: var(--danger); }
+  .v-main b { color: var(--ink); }
+  .v-do { padding-top: 10px; border-top: 1px solid var(--line-soft); }
+  .v-badge { display: flex; flex-direction: column; justify-content: center; text-align: center; padding: 18px 26px; border: 1px solid var(--gold); background: rgba(199,159,0,0.06); min-width: 170px; }
+  .vb-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .vb-name { font-family: var(--display); font-size: 17px; color: var(--ink); margin: 6px 0 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .vb-price { font-family: var(--display); font-size: 34px; color: var(--gold); line-height: 1; font-variant-numeric: tabular-nums; }
+  .vb-sub { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  /* Enlace al doc de reglas */
+  .reglas-link { margin-top: 22px; display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; transition: border-color .15s, background .15s; }
+  .reglas-link:hover, .reglas-link:focus-visible { border-color: var(--green); background: var(--panel2); outline: none; }
+  .rl-i { font-size: 20px; flex: 0 0 auto; }
+  .rl-t { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .rl-t b { color: var(--ink); }
+  .rl-go { flex: 0 0 auto; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-soft); white-space: nowrap; }
+
+  .ti-tag.pts { color: var(--cyan); border-color: rgba(130,182,198,0.3); }
+  .ti-tag.opt { color: var(--muted); border-color: var(--line); }
+  .tier-items li.opt { opacity: 0.72; }
+  .tier-items li.opt .ti-c { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="home" href="../index.html">← Builds</a>
+  <span class="sep"></span>
+  <span class="here">Garth Tyrell</span>
+</nav>
+
+<div class="wrap"><div class="page">
+
+  <p class="eyebrow">Sala de Duelos · Preparación para la guerra</p>
+  <h1>Garth Tyrell<span class="of">Qué build, a qué precio</span></h1>
+  <p class="lede">La guerra puede estallar en cualquier momento. Aquí no está todo el detalle de dónde salen los dragones, sino <b>cuánto cuesta cada build y sus niveles intermedios</b>, para decidir la opción <b>más barata y rentable</b>. No todos serán guerreros: hacen falta estrategas. Primero el <b>catálogo de perfiles con precios</b>, y al final el veredicto para Garth en concreto.</p>
+
+  <hr class="rule">
+
+  <div class="section-label"><span class="n">01</span><h2>De qué partimos</h2><span class="bar"></span></div>
+
+  <div class="card ficha">
+    <div class="left">
+      <p class="kicker">Atributos</p>
+      <div class="stats">
+        <div class="stat"><div class="v">4</div><div class="k">Fuerza</div></div>
+        <div class="stat hi"><div class="v">5</div><div class="k">Defensa</div></div>
+        <div class="stat lo"><div class="v">1</div><div class="k">Agilidad</div></div>
+        <div class="stat"><div class="v">4</div><div class="k">Conoc.</div></div>
+        <div class="stat"><div class="v">4</div><div class="k">Carisma</div></div>
+      </div>
+      <p class="kicker">Con su equipo actual</p>
+      <div class="derived">
+        <span class="d"><b>6</b>ataque</span>
+        <span class="d"><b>8</b>defensa</span>
+        <span class="d"><b>23</b>PV</span>
+        <span class="d"><b>0</b>daño extra</span>
+        <span class="d"><b>0</b>protección</span>
+      </div>
+      <div class="diag">
+        <p><span class="plus">&#9650; Fuerte:</span> aguanta bien — Defensa 8 y 23 PV lo hacen difícil de tumbar.</p>
+        <p><span class="minus">&#9660; Débil:</span> su daño es solo el <b>margen del golpe</b> (arma sin daño extra) y no lleva <b>protección</b>, así que recibe cada golpe entero. Agilidad 1 descarta el combate a distancia.</p>
+      </div>
+    </div>
+    <div>
+      <p class="kicker">Equipo</p>
+      <ul class="list" style="margin-bottom:20px;">
+        <li><span class="tag">Arma</span><span class="txt"><b>Espada larga</b> — +2 ataque, +1 defensa</span></li>
+        <li><span class="tag">Torso</span><span class="txt"><b>Cuero endurecido</b> — +2 defensa, +3 PV</span></li>
+        <li><span class="tag def">Escudo</span><span class="txt">— libre —</span></li>
+      </ul>
+      <p class="kicker">Habilidades <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">· 5 de 5 · permanentes</span></p>
+      <ul class="list">
+        <li><span class="tag fue">FUE</span><span class="txt"><b>Impacto pesado</b> — repites una tirada de ataque fallida (1×/enemigo)</span></li>
+        <li><span class="tag def">DEF</span><span class="txt"><b>Aguante entrenado</b> — +3 PV durante el tema</span></li>
+        <li><span class="tag fue">FUE</span><span class="txt"><b>Embestida</b> — +1 al ataque el primer turno</span></li>
+        <li><span class="tag car">CAR</span><span class="txt"><b>Pregunta incómoda</b> — pregunta comprometida: responde o se delata</span></li>
+        <li><span class="tag car">CAR</span><span class="txt"><b>Solicitud razonable</b> — favor pequeño: acepta o razona la negativa</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <a class="reglas-link" href="../reglas/index.html">
+    <span class="rl-i">📕</span>
+    <span class="rl-t"><b>Reglas de progresión</b> — monedas, qué es permanente, ingresos y costes fijos (subir punto 75 🐉, huecos de habilidad, canje de equipo).</span>
+    <span class="rl-go">Consultar →</span>
+  </a>
+
+  <div class="section-label"><span class="n">02</span><h2>Los dos perfiles y su precio</h2><span class="bar"></span></div>
+
+  <p class="section-intro">Para la guerra no todos serán guerreros: hacen falta estrategas. Cada perfil tiene tres niveles; los precios son el <b>coste total desde la hoja actual de Garth</b> e incluyen subir atributos (<b>75 🐉 por punto</b>, tope en 10). La clave: <b>el guerrero se paga en equipo</b> y Garth ya tiene los puntos; <b>el estratega se paga en Conocimiento</b>, que él aún debe comprar.</p>
+
+  <div class="profiles">
+
+    <div class="profile war">
+      <header><p class="ident">Combate cuerpo a cuerpo</p><h3>Guerrero</h3><p class="req-line">Garth <b>ya cumple los mínimos</b> (FUE 4 · DEF 5)</p></header>
+      <div class="tiers">
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">1</span> Competente mínimo</span><span class="tier-price">150 🐉</span></div>
+          <p class="tier-goal">Deja de ser inofensivo: acierta fiable y aguanta. Sin subir puntos.</p>
+          <ul class="tier-items">
+            <li><span class="ti-tag hab">Hab.</span> Fuerza de choque <span class="ti-c">50</span></li>
+            <li><span class="ti-tag eq">Equipo</span> Escudo · Rodela (+2 def) <span class="ti-c">100</span></li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">2</span> Sólido</span><span class="tier-price">445 🐉</span></div>
+          <p class="tier-goal">Pega de verdad y encaja mejor. Sigue sin subir puntos.</p>
+          <ul class="tier-items">
+            <li><span class="ti-tag eq">Equipo</span> Espada bastarda (+3 atk) <span class="ti-c">195*</span></li>
+            <li><span class="ti-tag hab">Hab.</span> Guardia básica <span class="ti-c">+100</span></li>
+          </ul>
+        </div>
+        <div class="tier locked-tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">3</span> Élite</span><span class="tier-price">≈ 1.450 🐉</span></div>
+          <p class="tier-goal warn">Aquí sí toca subir puntos: <b>FUE 4→8</b> y <b>DEF 5→6</b>.</p>
+          <ul class="tier-items">
+            <li><span class="ti-tag pts">Puntos</span> FUE 4→8 · DEF 5→6 <span class="ti-c">+375</span></li>
+            <li><span class="ti-tag hab">Hab.</span> Reflejo defensivo · Furia <span class="ti-c">+350</span></li>
+            <li><span class="ti-tag eq">Equipo</span> Arnés parcial (+5 prot) <span class="ti-c">280</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile strat">
+      <header><p class="ident">Mando de batalla + economía</p><h3>Estratega</h3><p class="req-line">Garth parte de <b>CON 4</b> → debe comprar puntos</p></header>
+      <div class="tiers">
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">1</span> Competente mínimo</span><span class="tier-price">200 🐉</span></div>
+          <p class="tier-goal">Aporta a <b>toda la batalla</b>, no solo a un duelo. Necesita <b>CON 6</b>. <b>No exige equipo de combate.</b></p>
+          <ul class="tier-items">
+            <li><span class="ti-tag pts">Puntos</span> CON 4→6 <span class="ti-c">+150</span></li>
+            <li><span class="ti-tag hab">Hab.</span> Lectura estratégica <span class="ti-c">50</span></li>
+            <li class="opt"><span class="ti-tag opt">Opcional</span> Escudo por seguridad <span class="ti-c">+100</span></li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">2</span> Competente</span><span class="tier-price">≈ 600 🐉</span></div>
+          <p class="tier-goal">Intendencia + mando. Necesita <b>CON 8</b>.</p>
+          <ul class="tier-items">
+            <li><span class="ti-tag pts">Puntos</span> CON 6→8 <span class="ti-c">+150</span></li>
+            <li><span class="ti-tag hab">Hab.</span> Contable · Red de abastecimiento <span class="ti-c">+250</span></li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name"><span class="tier-badge">3</span> General</span><span class="tier-price">≈ 1.200 🐉</span></div>
+          <p class="tier-goal">El mando total. Necesita <b>CON 10</b> (el tope).</p>
+          <ul class="tier-items">
+            <li><span class="ti-tag pts">Puntos</span> CON 8→10 <span class="ti-c">+150</span></li>
+            <li><span class="ti-tag hab">Hab.</span> Estratega mayor · Arquitecto <span class="ti-c">+450</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="tier-foot"><b>Cómo leer los precios:</b> son acumulados y todo incluido para Garth. <b>*</b> = neto tras canjear su arma actual (mismo tipo, −50%). Subir 1 punto = <b>75 🐉</b> (tope en 10). El hueco de cada habilidad sube según cuántas lleves (6.ª = 50, 7.ª = 100, 8.ª = 150, 9.ª = 200, 10.ª = 250). Llegar a <b>10 en Ataque o Defensa</b> es un salto enorme de poder, pero es la parte más cara del sistema.</p>
+
+  <div class="compare">
+    <div><span class="cmp-h war">Guerrero</span> Para Garth es <b>lo más barato</b>: ya tiene los puntos, solo paga equipo. Domina el duelo 1v1.</div>
+    <div><span class="cmp-h strat">Estratega</span> Le cuesta <b>+150 de entrada</b> (comprar CON 4→6), pero luego influye en <b>toda la batalla</b>, no en un solo duelo.</div>
+    <div><span class="cmp-h gold">Lo más rentable</span> Depende de la Casa: si sobran duelistas, gastar 200 en hacerlo <b>estratega</b> rinde más por su alcance; si faltan espadas, <b>Guerrero mínimo (150)</b> es la ganga.</div>
+  </div>
+
+  <div class="section-label"><span class="n">03</span><h2>Veredicto para Garth</h2><span class="bar"></span></div>
+
+  <div class="verdict">
+    <div class="v-main">
+      <p class="v-head">Dos opciones reales — según lo que necesite la Casa.</p>
+      <p><b>La ganga (150 🐉) · Guerrero mínimo.</b> Garth ya tiene FUE 4 / DEF 5, así que no gasta un dragón en puntos: Fuerza de choque + Rodela arreglan sus dos debilidades (poca pegada, sin protección). Es su compra más eficiente y lo pone competitivo en cualquier duelo ya.</p>
+      <p><b>La de más alcance (200 🐉) · Estratega mínimo.</b> Subir <b>CON 4→6</b> (+150) desbloquea <i>Lectura estratégica</i> (+50) — repite ataques en las ofensivas que él dirige, afectando a <b>toda la batalla</b>. No exige equipo de combate (un escudo es opcional, +100). Poco más que el guerrero, pero su impacto no es un duelo: es la batalla entera.</p>
+      <p class="v-do"><b>Recomendación:</b> si la Casa va sobrada de espadas, invierte los 300 y haz de Garth el <b>estratega</b> — rinde más por dragón a escala de guerra. Si faltan cuerpos en la línea, el <b>Guerrero mínimo (150)</b> es imbatible en coste. Lo que <b>no</b> conviene es a medias: elige uno y complétalo antes de tocar el otro.</p>
+    </div>
+    <div class="v-badge">
+      <div class="vb-label">Ganga · Duelo</div>
+      <div class="vb-name">Guerrero mín.</div>
+      <div class="vb-price">150 🐉</div>
+      <div class="vb-sub" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line-soft);">juega a su fuerte</div>
+      <div class="vb-label">Alcance · Guerra</div>
+      <div class="vb-name">Estratega mín.</div>
+      <div class="vb-price">200 🐉</div>
+      <div class="vb-sub">impacto de batalla</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h4>Cómo gastar bien — casi nada se devuelve</h4>
+    <p><b>Habilidades y puntos son permanentes:</b> no se reasignan ni se devuelven. Elige una vía y complétala antes de tocar la otra; repartir a medias es tirar dragones. El único margen para experimentar es el equipo.</p>
+    <p><b>Equipo — tu palanca reversible:</b> sube <b>dentro del mismo tipo</b> (espada→espada, ligera→ligera) para recuperar el 50% de la pieza vieja. Salirte del tipo cuesta el doble de facto.</p>
+    <p><b>Por qué el ataque manda:</b> el daño de un golpe = <b>margen (ataque − defensa) + daño del arma − protección rival</b>. Subir ataque no solo acierta más, también pega más fuerte — y llegar a <b>10 en Ataque o Defensa</b> (el tope) marca la diferencia en cualquier duelo. Por eso, en Garth, <b>Fuerza de choque + espada bastarda</b> es la inversión más rentable si va de guerrero.</p>
+  </div>
+
+  <footer>
+    Datos del sistema de la web (tienda de duelos, árbol de habilidades y cálculo de combate). Costes: subir 1 punto = 75 🐉 (tope 10); habilidad extra = 50 / 100 / 150 / 200 / 250 según cuántas lleves; equipo canjeable al 50% dentro del mismo tipo. Reglas completas en el <a href="../reglas/index.html" style="color:var(--gold-soft);">doc de progresión</a>.
+  </footer>
+
+</div></div>
+</body>
+</html>

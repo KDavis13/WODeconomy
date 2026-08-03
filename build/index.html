@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Builds de personaje — WODeconomy</title>
+<meta name="description" content="Planes de evolución de personajes para el foro Win or Die: rutas, costes en dragones e hitos por atributo." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" />
+<style>
+  :root {
+    --bg: #0a0c08; --panel: #11140d; --panel2: #171b0f;
+    --ink: #e9e5d7; --muted: #98a187;
+    --gold: #c79f00; --gold-soft: #e2c860;
+    --green: #86bd5c; --green-deep: #4f7135;
+    --line: rgba(124,174,86,0.16); --line-soft: rgba(124,174,86,0.09);
+    --display: 'Cinzel', Georgia, serif;
+    --body: 'Mulish', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 18px;
+    padding: 12px clamp(16px, 5vw, 40px); background: rgba(10,12,8,0.86); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .topbar a { color: var(--muted); padding: 6px 2px; border-bottom: 1px solid transparent; transition: color .15s, border-color .15s; }
+  .topbar a:hover, .topbar a:focus-visible { color: var(--gold); border-color: var(--green-deep); outline: none; }
+  .topbar .home { color: var(--green); font-family: var(--display); letter-spacing: 0.18em; }
+  .topbar .sep { flex: 1; }
+  .topbar .here { color: var(--ink); }
+
+  .wrap { background: radial-gradient(120% 80% at 50% -10%, rgba(79,113,53,0.10), transparent 60%); padding: clamp(28px, 6vw, 72px) clamp(16px, 5vw, 40px) 96px; }
+  .page { max-width: 900px; margin: 0 auto; }
+
+  .eyebrow { font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--green); font-weight: 600; margin: 0 0 14px; }
+  h1 { font-family: var(--display); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: clamp(30px, 6vw, 50px); margin: 0 0 16px; text-wrap: balance; }
+  .lede { max-width: 60ch; color: var(--muted); font-size: 17px; margin: 0 0 44px; }
+  .lede b { color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+  .pj {
+    display: block; background: var(--panel); border: 1px solid var(--line);
+    padding: 22px 22px 20px; transition: border-color .15s, transform .15s, background .15s;
+  }
+  .pj:hover, .pj:focus-visible { border-color: var(--green); transform: translateY(-2px); background: var(--panel2); outline: none; }
+  .pj .house { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin: 0 0 8px; font-weight: 600; }
+  .pj h2 { font-family: var(--display); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; font-size: 24px; margin: 0 0 12px; color: var(--ink); }
+  .pj p { margin: 0 0 16px; font-size: 13.5px; color: var(--muted); }
+  .pj .go { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-soft); }
+  .pj .go::after { content: " →"; }
+
+  .soon { border-style: dashed; border-color: var(--line); opacity: 0.7; }
+  .soon:hover { transform: none; }
+  .soon .house { color: var(--muted); }
+  .soon h2 { color: var(--muted); }
+  .soon .go { color: var(--muted); }
+  .soon .go::after { content: ""; }
+
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <span class="home">Builds de personaje</span>
+  <span class="sep"></span>
+  <span class="here">Win or Die</span>
+</nav>
+
+<div class="wrap"><div class="page">
+
+  <p class="eyebrow">Sala de Duelos · Planes de personaje</p>
+  <h1>Builds de personaje</h1>
+  <p class="lede">Rutas de evolución para cada personaje: en qué es fuerte hoy, cómo crecerlo y <b>cuánto cuesta en dragones</b> cada paso. Pensado para tener siempre la mejor versión posible según suban sus atributos.</p>
+
+  <div class="grid">
+    <a class="pj" href="garth/index.html">
+      <p class="house">Casa Tyrell</p>
+      <h2>Garth Tyrell</h2>
+      <p>Defensor sólido con pegada floja. Dos rutas: guerrero de duelo o estratega de batalla.</p>
+      <span class="go">Ver plan</span>
+    </a>
+
+    <a class="pj" href="steffon/index.html">
+      <p class="house">Casa Baratheon</p>
+      <h2>Steffon Baratheon</h2>
+      <p>Guerrero terminado (FUE 10 / DEF 10). Quiere dar el salto a estratega de batalla: qué cuesta mandar.</p>
+      <span class="go">Ver plan</span>
+    </a>
+  </div>
+
+  <footer>
+    Datos tomados del sistema de la propia web: tienda de equipo, árbol de habilidades y cálculo de combate de la Sala de Duelos.
+  </footer>
+
+</div></div>
+</body>
+</html>
