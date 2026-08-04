@@ -319,6 +319,23 @@
   .tier-note-mini { margin: 12px 20px 4px; font-size: 12px; color: var(--muted); line-height: 1.5; }
   .tier-note-mini b { color: var(--ink); }
 
+  /* Lista de compras marcable */
+  .buy-summary { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; margin: 0 0 22px; padding: 11px 15px; background: var(--panel2); border: 1px solid var(--line); font-size: 12.5px; }
+  .buy-summary .bs-t { color: var(--muted); }
+  .buy-summary .bs-c { color: var(--ink); margin-left: auto; letter-spacing: 0.04em; }
+  .buy-summary .bs-c b { color: var(--green); font-family: var(--display); font-variant-numeric: tabular-nums; }
+  .buy-summary .bs-reset { cursor: pointer; background: transparent; border: 1px solid var(--line); color: var(--muted); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 11px; transition: color .15s, border-color .15s; }
+  .buy-summary .bs-reset:hover, .buy-summary .bs-reset:focus-visible { color: var(--gold); border-color: var(--green-deep); outline: none; }
+  .tier-items li.buyable { cursor: pointer; outline: none; }
+  .tier-items li.buyable:hover .buybox { border-color: var(--green); }
+  .tier-items li.buyable:focus-visible .buybox { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-deep); }
+  .buybox { flex: 0 0 auto; width: 15px; height: 15px; border: 1px solid var(--muted); display: inline-grid; place-items: center; font-size: 10px; line-height: 1; color: transparent; align-self: flex-start; margin-top: 1px; transition: background .12s, border-color .12s; }
+  .tier-items li.bought { opacity: 0.5; text-decoration: line-through; }
+  .tier-items li.bought .buybox { background: var(--green); border-color: var(--green); color: var(--bg); text-decoration: none; }
+  .tier-items li.bought .ti-tag { text-decoration: none; }
+  .tier.tier-done .tier-price { color: var(--green) !important; }
+  .tier.tier-done .tier-price::after { content: " ✓"; }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -469,5 +486,53 @@
   </footer>
 
 </div></div>
+
+<script>
+(function(){
+  var seg = location.pathname.replace(/\/(index\.html)?$/,'').split('/').filter(Boolean).pop() || 'build';
+  var KEY = 'wodbuild:'+seg, state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY)||'{}')||{}; } catch(e){}
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  var items = [];
+  document.querySelectorAll('.tier-items li').forEach(function(li){
+    var c = li.querySelector('.ti-c');
+    if(!c || !/\d/.test(c.textContent)) return;
+    li.classList.add('buyable');
+    li.setAttribute('tabindex','0');
+    li.setAttribute('role','checkbox');
+    var id = (li.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    var box = document.createElement('span'); box.className='buybox'; box.textContent='✓';
+    li.insertBefore(box, li.firstChild);
+    items.push({li:li,id:id});
+    if(state[id]) li.classList.add('bought');
+    li.setAttribute('aria-checked', li.classList.contains('bought'));
+    function toggle(){
+      var on = !li.classList.contains('bought');
+      li.classList.toggle('bought', on);
+      li.setAttribute('aria-checked', on);
+      if(on) state[id]=1; else delete state[id];
+      save(); refresh();
+    }
+    li.addEventListener('click', toggle);
+    li.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+  });
+  function refresh(){
+    document.querySelectorAll('.tier').forEach(function(t){
+      var bs = t.querySelectorAll('.tier-items li.buyable');
+      if(!bs.length) return;
+      t.classList.toggle('tier-done', Array.prototype.every.call(bs,function(x){return x.classList.contains('bought');}));
+    });
+    if(sumEl){ var n = items.filter(function(x){return x.li.classList.contains('bought');}).length; sumEl.querySelector('.bs-n').textContent = n+' / '+items.length; }
+  }
+  var sumEl=null, intro=document.querySelector('.section-intro');
+  if(intro && items.length){
+    sumEl=document.createElement('div'); sumEl.className='buy-summary';
+    sumEl.innerHTML='<span class="bs-t">Marca lo que ya compraste para ver lo que te queda.</span><span class="bs-c"><b class="bs-n"></b> comprado</span><button class="bs-reset" type="button">Reiniciar</button>';
+    intro.parentNode.insertBefore(sumEl, intro.nextSibling);
+    sumEl.querySelector('.bs-reset').addEventListener('click',function(){ state={}; save(); items.forEach(function(x){x.li.classList.remove('bought'); x.li.setAttribute('aria-checked','false');}); refresh(); });
+  }
+  refresh();
+})();
+</script>
 </body>
 </html>
